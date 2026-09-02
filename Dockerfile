@@ -38,9 +38,10 @@ COPY --from=build /app/web/dist ./web/dist
 COPY --from=build /app/migrations ./migrations
 
 # The database lives on the Railway volume mounted here, not on the container
-# filesystem, which is replaced on every deploy.
+# filesystem, which is replaced on every deploy. The mount is declared in
+# Railway (a volume attached to this service at /data), not with a Docker
+# VOLUME instruction — the builder rejects those outright.
 ENV DATA_DIR=/data
-VOLUME ["/data"]
 
 # Railway injects PORT; this default only matters when running the image locally.
 ENV PORT=8080
