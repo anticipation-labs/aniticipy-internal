@@ -73,7 +73,16 @@ const server = new Hono();
 
 // Liveness. Deliberately above the static layer and outside the worker so it
 // answers even if the app's own routes are unhappy.
-server.get("/healthz", (c) => c.json({ ok: true, db: DB_PATH, migrations: applied.length }));
+server.get("/healthz", (c) =>
+  c.json({
+    ok: true,
+    db: DB_PATH,
+    // `applied` counts only this boot, which is 0 on every restart after the
+    // first. Reporting the total as well keeps a healthy service from looking
+    // like one with no schema.
+    migrations: { total: applied.length + skipped, appliedThisBoot: applied.length },
+  }),
+);
 
 // 1. Static assets, mirroring the [assets] binding's precedence.
 server.use("/*", serveStatic({ root: "./web/dist" }));
