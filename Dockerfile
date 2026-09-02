@@ -14,9 +14,11 @@ FROM node:24-slim AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-# esbuild's postinstall links its platform binary; the build cannot run without
-# it. Scripts stay blocked for every other dependency.
-RUN npm ci --allow-scripts esbuild
+# Install scripts are gated by npm's "allowScripts" field in package.json, which
+# already pins the entries this build needs (esbuild links its platform binary,
+# without which the bundle cannot be built). The flag form is rejected in
+# project-scoped installs, so the declaration must live in package.json.
+RUN npm ci
 
 COPY tsconfig*.json vitest.config.ts ./
 COPY shared ./shared
