@@ -1,0 +1,15 @@
+.git
+node_modules
+dist-server
+web/dist
+data
+*.log
+.dev.vars
+.wrangler
+test
+fixtures
+docs
+research
+plugins
+.claude
+.claude-plugin

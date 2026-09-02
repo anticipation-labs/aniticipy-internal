@@ -67,6 +67,34 @@ skills and auto-wires the MCP server in one step, so there's nothing to copy by 
 - `npm run dev` — build web, then `wrangler dev`
 - `npm run deploy` — build web, then `wrangler deploy`
 - `npm run db:create` / `db:migrate:local` / `db:migrate:remote` — D1 provisioning + migrations
+- `npm run build:node` / `npm start` — build and run the Node server (Railway target, below)
+
+## Deploy on Railway (Node)
+
+Canopy is written for Cloudflare Workers and still deploys there unchanged. It also runs on
+Railway as a plain Node service. The port swaps the driver, not the SQL: `src/` is untouched,
+all 20 migrations and the three FTS5 tables apply as written, and the Workers test suite still
+covers the same code.
+
+How the seam works:
+
+- **`server/d1.ts`** implements the D1 surface `src/db.ts` uses (`prepare().bind().first()/.all()/.run()`)
+  on top of Node's built-in `node:sqlite`. Node ships SQLite 3.53 with FTS5, so search needs no rewrite.
+- **`server/index.ts`** imports the Workers handler from `src/index.ts` and calls it, so routing, auth
+  and MCP stay defined once. It serves `web/dist` first, mirroring the `[assets]` binding's precedence,
+  and runs the `[triggers]` cron on a timer.
+- **`server/stubs/`** stands in for the `cloudflare:*` modules the `agents` package imports for its
+  Durable Object features. Canopy never executes those paths; the build fails on any unstubbed one.
+
+The database is a SQLite file on a Railway **volume mounted at `/data`**. Without that volume the
+container's disk is replaced on every deploy and the data goes with it. Migrations apply at boot.
+
+Set these service variables (same meanings as the Wrangler secrets above):
+`GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `COOKIE_SECRET`, and optionally `GITHUB_REPO`,
+`ADMIN_LOGINS`, `GITHUB_WEBHOOK_SECRET`, `GEMINI_API_KEY`, `GITHUB_SERVICE_TOKEN`.
+Point the GitHub OAuth App's callback at `https://<railway-host>/auth/callback`.
+
+`/healthz` reports liveness, the database path and the migration count.
 
 ## Auth & secrets
 
