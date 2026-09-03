@@ -276,6 +276,34 @@ describe("runBackfill", () => {
     expect(await all(env.DB, `SELECT * FROM events`)).toHaveLength(0);
   });
 
+  // Regression: with no GEMINI_API_KEY the summarizer is null, every row falls
+  // back to an "excerpt" (a local write, no AI call) and an excerpt never counts
+  // as done. The budget wall used to fire anyway, so the client — which loops
+  // while summaryBudgetExhausted — re-ran the SAME summaryBatchLimit rows up to
+  // MAX_BACKFILL_BATCHES times, showing "0 of N summarized" the whole way and
+  // never reaching row N. The budget only paces AI calls, so with no summarizer
+  // it must not engage at all.
+  it("does not exhaust the budget when no summarizer is configured — one pass covers every PR", async () => {
+    const fetchImpl = stubFetch([prA, prB, prC], []);
+
+    const res = await runBackfill(envWith(), "admin-user", {
+      fetchImpl,
+      summarizer: null,
+      summaryBatchLimit: 2, // fewer than the 3 PRs: the old code walled here
+      summaryCallDelayMs: 0,
+    });
+
+    expect(res.ok).toBe(true);
+    expect(res.summaryBudgetExhausted).toBe(false); // never ask the client to loop
+    expect(res.summarized).toBe(0);                 // no AI call was made
+    expect(res.prSummarizedCount).toBe(0);          // excerpts are not summaries
+
+    // Every PR got its excerpt row in the single pass, not just the first 2.
+    const rows = await all<PrSummaryRow>(env.DB, `SELECT pr_number, model FROM pr_summaries ORDER BY pr_number`);
+    expect(rows).toHaveLength(3);
+    expect(rows.every((r) => r.model === "excerpt")).toBe(true);
+  });
+
   it("caps AI summarization at summaryBatchLimit per invocation; a follow-up run finishes the rest", async () => {
     const summarizer = countingSummarizer({ ...PR_STUB, what: "**What changed:** Summary." });
     const fetchImpl = stubFetch([prA, prB, prC], []);
