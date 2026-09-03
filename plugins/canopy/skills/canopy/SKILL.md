@@ -83,7 +83,7 @@ export CANOPY_MCP_TOKEN=canopy_mcp_…        # the plugin's MCP config reads th
 **Manual fallback** — wire the MCP server and copy the skills yourself:
 
 ```bash
-claude mcp add --transport http canopy https://canopy.saplinglearn.com/mcp \
+claude mcp add --transport http canopy https://canopy.omar-114.workers.dev/mcp \
   --header "Authorization: Bearer canopy_mcp_…"
 # then copy the skill folders into another repo / your home dir:
 cp -r .claude/skills/{canopy,load-context,record-session} ~/.claude/skills/
