@@ -35,7 +35,7 @@ Rotation: tokens never expire on their own. Revoke and mint a new one from Setti
 
 ## 1. Sign in
 
-Open Canopy in your browser and sign in with GitHub. Access is gated to active members of the SaplingLearn organization: after the OAuth exchange Canopy checks your membership, and non-members are turned away before any session is created. Members land in the app signed in.
+Open Canopy in your browser and sign in with GitHub. Access is gated to active members of the anticipation-labs organization: after the OAuth exchange Canopy checks your membership, and non-members are turned away before any session is created. Members land in the app signed in.
 
 ## 2. Mint a personal token
 
@@ -77,7 +77,7 @@ This is the load-bearing invariant of the whole system: because there is a singl
 
   { slug: "auth", section: "reference", title: "Auth", updated_at: "2026-06-25T18:00:00Z",
     body:
-`Sign-in is delegated to GitHub via OAuth with PKCE, and access is gated to active members of the SaplingLearn organization. After the OAuth exchange Canopy checks org membership; non-members are redirected to a locked dead-end (/?denied=1) and no session is created.
+`Sign-in is delegated to GitHub via OAuth with PKCE, and access is gated to active members of the anticipation-labs organization. After the OAuth exchange Canopy checks org membership; non-members are redirected to a locked dead-end (/?denied=1) and no session is created.
 
 Humans authenticate with a signed session cookie. Agents authenticate to /mcp with a personal bearer token (canopy_mcp_… prefix), stored only as a SHA-256 hash. The principal — just a GitHub login — is resolved from the session for HTTP and from the bearer for /mcp, and is threaded into the gate as the authoritative author.
 
@@ -140,7 +140,7 @@ It runs as a single Cloudflare Worker on one origin that serves the HTTP API, a 
 
   { slug: "team-roles", section: "context", title: "Team & Roles", updated_at: "2026-06-14T09:00:00Z",
     body:
-`Authorship in Canopy follows the GitHub identity of whoever ran the session that produced a change — the gate stamps the authenticated principal as the author and ignores any client-supplied name. Access is limited to active members of the SaplingLearn organization.
+`Authorship in Canopy follows the GitHub identity of whoever ran the session that produced a change — the gate stamps the authenticated principal as the author and ignores any client-supplied name. Access is limited to active members of the anticipation-labs organization.
 
 There are two roles in practice, not two kinds of people: an agent stages, and a human confirms. The same person can do both — point an agent at the MCP endpoint to write, then sign in to Triage to promote.`},
 
@@ -185,7 +185,7 @@ Rationale: keeping every agent write non-destructive and staged preserves a huma
     body:
 `Context: Canopy holds a team's working memory and must not be world-readable, but the team did not want to run a separate identity system.
 
-Decision: delegate sign-in to GitHub via OAuth with PKCE, and gate access to active members of the SaplingLearn organization. Humans get a signed session cookie; agents get hashed per-person bearer tokens for /mcp. Non-members hit a locked dead-end.
+Decision: delegate sign-in to GitHub via OAuth with PKCE, and gate access to active members of the anticipation-labs organization. Humans get a signed session cookie; agents get hashed per-person bearer tokens for /mcp. Non-members hit a locked dead-end.
 
 Rationale: the team already lives in GitHub, so org membership is the natural access boundary and requires no new credential store. The org's OAuth token is sealed at rest and reused for live roadmap reads.`},
 

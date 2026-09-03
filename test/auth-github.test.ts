@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { buildAuthorizeUrl, SAPLING_ORG } from "../src/auth/github";
+import { buildAuthorizeUrl, DEFAULT_ORG, orgFor } from "../src/auth/github";
+import type { Env } from "../src/env";
 
 describe("buildAuthorizeUrl", () => {
   it("targets GitHub authorize with client_id, redirect_uri, scope, state, and S256 challenge", () => {
@@ -15,7 +16,14 @@ describe("buildAuthorizeUrl", () => {
     expect(url.searchParams.get("code_challenge_method")).toBe("S256");
   });
 
-  it("pins the org constant", () => {
-    expect(SAPLING_ORG).toBe("SaplingLearn");
+  it("defaults the org to anticipation-labs", () => {
+    expect(DEFAULT_ORG).toBe("anticipation-labs");
+    expect(orgFor({} as Env)).toBe("anticipation-labs");
+  });
+
+  it("lets GITHUB_ORG override the default, ignoring blank values", () => {
+    expect(orgFor({ GITHUB_ORG: "some-other-org" } as Env)).toBe("some-other-org");
+    expect(orgFor({ GITHUB_ORG: "  spaced  " } as Env)).toBe("spaced");
+    expect(orgFor({ GITHUB_ORG: "   " } as Env)).toBe(DEFAULT_ORG);
   });
 });

@@ -21,7 +21,7 @@ describe("GET /auth/me", () => {
     expect(body.login).toBe("andres");
     expect(body.name).toBe("andres");
     expect(body.avatar_url).toBeNull();
-    expect(body.org).toBe("SaplingLearn");
+    expect(body.org).toBe("anticipation-labs");
   });
 
   it("returns avatar_url when stored", async () => {

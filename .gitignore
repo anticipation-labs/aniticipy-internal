@@ -5,6 +5,3 @@ web/dist/
 *.log
 .superpowers/
 
-# Node build output (server bundle) and the local SQLite data dir
-dist-server/
-data/

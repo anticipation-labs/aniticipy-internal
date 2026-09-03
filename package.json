@@ -3,8 +3,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:node": "npm run build:web && npm run build:server",
-    "build:server": "node scripts/build-server.mjs",
     "build:web": "vite build --config web/vite.config.ts",
     "db:create": "wrangler d1 create canopy",
     "db:migrate:local": "wrangler d1 migrations apply canopy --local",
@@ -13,13 +11,10 @@
     "dev": "npm run build:web && wrangler dev",
     "pretest": "mkdir -p web/dist",
     "seed": "node scripts/seed-dev.mjs",
-    "start": "node dist-server/index.mjs",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.worker.json && tsc -p tsconfig.web.json",
-    "typecheck:server": "tsc -p tsconfig.server.json"
+    "typecheck": "tsc -p tsconfig.worker.json && tsc -p tsconfig.web.json"
   },
   "dependencies": {
-    "@hono/node-server": "^2.1.1",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "agents": "^0.16.2",
     "dompurify": "^3.4.11",
