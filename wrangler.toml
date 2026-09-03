@@ -10,16 +10,18 @@ directory = "./web/dist"
 binding = "ASSETS"
 
 # D1. For local dev and tests the id is a placeholder (Miniflare uses a local sqlite).
-# Run `npm run db:create` to provision the real database and paste its id here before deploy.
+# Provisioned in the Anticipy Cloudflare account; `npm run db:migrate:remote` applies migrations/.
 [[d1_databases]]
 binding = "DB"
 database_name = "canopy"
-database_id = "80386dc4-deef-461d-932a-0670d22ddf83"
+database_id = "4651b392-2a14-462a-8e1f-e3149be7cc54"
 
 [vars]
-GITHUB_REPO = "SaplingLearn/sapling"
+# GitHub org whose ACTIVE members may sign in. Everyone else gets /?denied=1.
+GITHUB_ORG = "anticipation-labs"
+GITHUB_REPO = "anticipation-labs/Anticipy"
 # Comma-separated GitHub logins allowed to run admin actions (e.g. the server-side backfill).
-ADMIN_LOGINS = "AndresL230"
+ADMIN_LOGINS = "Jose-Gael-Cruz-Lopez"
 
 [observability]
 enabled = true

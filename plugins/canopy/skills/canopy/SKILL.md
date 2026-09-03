@@ -75,7 +75,7 @@ Mint a personal token first: Canopy web app → Settings → MCP access tokens (
 **Recommended — install the plugin** (bundles all three skills AND auto-wires the MCP server):
 
 ```bash
-claude plugin marketplace add SaplingLearn/canopy
+claude plugin marketplace add anticipation-labs/canopy
 claude plugin install canopy@canopy
 export CANOPY_MCP_TOKEN=canopy_mcp_…        # the plugin's MCP config reads this
 ```

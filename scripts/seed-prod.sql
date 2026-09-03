@@ -24,7 +24,7 @@ INSERT INTO docs (slug, section, title, body, current_version, updated_at, updat
 
 ## 1. Sign in
 
-Open Canopy in your browser and sign in with GitHub. Access is gated to active members of the SaplingLearn organization: after the OAuth exchange Canopy checks your membership, and non-members are turned away before any session is created. Members land in the app signed in.
+Open Canopy in your browser and sign in with GitHub. Access is gated to active members of the anticipation-labs organization: after the OAuth exchange Canopy checks your membership, and non-members are turned away before any session is created. Members land in the app signed in.
 
 ## 2. Mint a personal token
 
@@ -59,7 +59,7 @@ INSERT INTO doc_versions (slug, version, body, summary, status, confidence, crea
 
 ## 1. Sign in
 
-Open Canopy in your browser and sign in with GitHub. Access is gated to active members of the SaplingLearn organization: after the OAuth exchange Canopy checks your membership, and non-members are turned away before any session is created. Members land in the app signed in.
+Open Canopy in your browser and sign in with GitHub. Access is gated to active members of the anticipation-labs organization: after the OAuth exchange Canopy checks your membership, and non-members are turned away before any session is created. Members land in the app signed in.
 
 ## 2. Mint a personal token
 
@@ -100,12 +100,12 @@ INSERT INTO doc_versions (slug, version, body, summary, status, confidence, crea
 The gate makes three guarantees. First, nothing is guessed: an out-of-vocabulary tag or section, a low-confidence flag, or a milestone marked done is routed to the needs-triage queue instead of being written blindly. Second, the author is always the authenticated principal passed in by the caller; the client-supplied author field is advisory and ignored. Third, agent writes are non-destructive — they land as staged proposals, never as live content.
 
 This is the load-bearing invariant of the whole system: because there is a single gated path, the human review guarantee holds no matter which client is talking to Canopy.', 'Initial published version', 'promoted', 'high', '2026-06-23T09:00:00Z', 'AndresL230');
-INSERT INTO docs (slug, section, title, body, current_version, updated_at, updated_by, space) VALUES ('auth', 'reference', 'Auth', 'Sign-in is delegated to GitHub via OAuth with PKCE, and access is gated to active members of the SaplingLearn organization. After the OAuth exchange Canopy checks org membership; non-members are redirected to a locked dead-end (/?denied=1) and no session is created.
+INSERT INTO docs (slug, section, title, body, current_version, updated_at, updated_by, space) VALUES ('auth', 'reference', 'Auth', 'Sign-in is delegated to GitHub via OAuth with PKCE, and access is gated to active members of the anticipation-labs organization. After the OAuth exchange Canopy checks org membership; non-members are redirected to a locked dead-end (/?denied=1) and no session is created.
 
 Humans authenticate with a signed session cookie. Agents authenticate to /mcp with a personal bearer token (canopy_mcp_… prefix), stored only as a SHA-256 hash. The principal — just a GitHub login — is resolved from the session for HTTP and from the bearer for /mcp, and is threaded into the gate as the authoritative author.
 
 The org''s OAuth token is retained at the callback, AES-GCM-sealed under the cookie secret (no separate secret), so the roadmap can read GitHub at view time. One subtlety worth knowing: GitHub only accepts https callback URLs for public hosts, so Canopy forces the redirect_uri scheme to https except on localhost — a request that reaches the Worker over http still produces an https callback that GitHub accepts.', 1, '2026-06-25T18:00:00Z', 'AndresL230', 'canopy');
-INSERT INTO doc_versions (slug, version, body, summary, status, confidence, created_at, created_by) VALUES ('auth', 1, 'Sign-in is delegated to GitHub via OAuth with PKCE, and access is gated to active members of the SaplingLearn organization. After the OAuth exchange Canopy checks org membership; non-members are redirected to a locked dead-end (/?denied=1) and no session is created.
+INSERT INTO doc_versions (slug, version, body, summary, status, confidence, created_at, created_by) VALUES ('auth', 1, 'Sign-in is delegated to GitHub via OAuth with PKCE, and access is gated to active members of the anticipation-labs organization. After the OAuth exchange Canopy checks org membership; non-members are redirected to a locked dead-end (/?denied=1) and no session is created.
 
 Humans authenticate with a signed session cookie. Agents authenticate to /mcp with a personal bearer token (canopy_mcp_… prefix), stored only as a SHA-256 hash. The principal — just a GitHub login — is resolved from the session for HTTP and from the bearer for /mcp, and is threaded into the gate as the authoritative author.
 
@@ -170,10 +170,10 @@ It runs as a single Cloudflare Worker on one origin that serves the HTTP API, a 
 INSERT INTO doc_versions (slug, version, body, summary, status, confidence, created_at, created_by) VALUES ('product-overview', 1, 'Canopy is the shared source of truth and working memory for the Sapling team. It is read by humans and written almost entirely by their coding agents: at the end of a session an agent posts what it did and what it proposes, and a human confirms the consequential changes.
 
 It runs as a single Cloudflare Worker on one origin that serves the HTTP API, a stateless MCP endpoint, and the static web app together. The guiding idea is that a small team plus its agents stays coherent if there is exactly one gated way to write and a fast console for a human to confirm. Everything else — the immutable feed, the promoted-vs-staged doc model, the live roadmap — follows from that.', 'Initial published version', 'promoted', 'high', '2026-06-15T09:00:00Z', 'AndresL230');
-INSERT INTO docs (slug, section, title, body, current_version, updated_at, updated_by, space) VALUES ('team-roles', 'context', 'Team & Roles', 'Authorship in Canopy follows the GitHub identity of whoever ran the session that produced a change — the gate stamps the authenticated principal as the author and ignores any client-supplied name. Access is limited to active members of the SaplingLearn organization.
+INSERT INTO docs (slug, section, title, body, current_version, updated_at, updated_by, space) VALUES ('team-roles', 'context', 'Team & Roles', 'Authorship in Canopy follows the GitHub identity of whoever ran the session that produced a change — the gate stamps the authenticated principal as the author and ignores any client-supplied name. Access is limited to active members of the anticipation-labs organization.
 
 There are two roles in practice, not two kinds of people: an agent stages, and a human confirms. The same person can do both — point an agent at the MCP endpoint to write, then sign in to Triage to promote.', 1, '2026-06-14T09:00:00Z', 'AndresL230', 'canopy');
-INSERT INTO doc_versions (slug, version, body, summary, status, confidence, created_at, created_by) VALUES ('team-roles', 1, 'Authorship in Canopy follows the GitHub identity of whoever ran the session that produced a change — the gate stamps the authenticated principal as the author and ignores any client-supplied name. Access is limited to active members of the SaplingLearn organization.
+INSERT INTO doc_versions (slug, version, body, summary, status, confidence, created_at, created_by) VALUES ('team-roles', 1, 'Authorship in Canopy follows the GitHub identity of whoever ran the session that produced a change — the gate stamps the authenticated principal as the author and ignores any client-supplied name. Access is limited to active members of the anticipation-labs organization.
 
 There are two roles in practice, not two kinds of people: an agent stages, and a human confirms. The same person can do both — point an agent at the MCP endpoint to write, then sign in to Triage to promote.', 'Initial published version', 'promoted', 'high', '2026-06-14T09:00:00Z', 'AndresL230');
 INSERT INTO docs (slug, section, title, body, current_version, updated_at, updated_by, space) VALUES ('glossary', 'context', 'Glossary', 'promoted — the live, canonical version of a doc that humans read. Exactly one exists per doc at a time.
@@ -226,12 +226,12 @@ Decision: agents only ever stage. Live changes happen exclusively through authen
 Rationale: keeping every agent write non-destructive and staged preserves a human review gate without slowing agents down, and the confidence flag on each write lets reviewers triage quickly.', 'Initial published version', 'promoted', 'high', '2026-04-18T09:00:00Z', 'AndresL230');
 INSERT INTO docs (slug, section, title, body, current_version, updated_at, updated_by, space) VALUES ('adr-003-org-gate', 'decisions', 'ADR-003 · GitHub OAuth, gated to the org', 'Context: Canopy holds a team''s working memory and must not be world-readable, but the team did not want to run a separate identity system.
 
-Decision: delegate sign-in to GitHub via OAuth with PKCE, and gate access to active members of the SaplingLearn organization. Humans get a signed session cookie; agents get hashed per-person bearer tokens for /mcp. Non-members hit a locked dead-end.
+Decision: delegate sign-in to GitHub via OAuth with PKCE, and gate access to active members of the anticipation-labs organization. Humans get a signed session cookie; agents get hashed per-person bearer tokens for /mcp. Non-members hit a locked dead-end.
 
 Rationale: the team already lives in GitHub, so org membership is the natural access boundary and requires no new credential store. The org''s OAuth token is sealed at rest and reused for live roadmap reads.', 1, '2026-05-02T09:00:00Z', 'AndresL230', 'canopy');
 INSERT INTO doc_versions (slug, version, body, summary, status, confidence, created_at, created_by) VALUES ('adr-003-org-gate', 1, 'Context: Canopy holds a team''s working memory and must not be world-readable, but the team did not want to run a separate identity system.
 
-Decision: delegate sign-in to GitHub via OAuth with PKCE, and gate access to active members of the SaplingLearn organization. Humans get a signed session cookie; agents get hashed per-person bearer tokens for /mcp. Non-members hit a locked dead-end.
+Decision: delegate sign-in to GitHub via OAuth with PKCE, and gate access to active members of the anticipation-labs organization. Humans get a signed session cookie; agents get hashed per-person bearer tokens for /mcp. Non-members hit a locked dead-end.
 
 Rationale: the team already lives in GitHub, so org membership is the natural access boundary and requires no new credential store. The org''s OAuth token is sealed at rest and reused for live roadmap reads.', 'Initial published version', 'promoted', 'high', '2026-05-02T09:00:00Z', 'AndresL230');
 INSERT INTO docs (slug, section, title, body, current_version, updated_at, updated_by, space) VALUES ('adr-004-live-roadmap', 'decisions', 'ADR-004 · Roadmap progress is computed live, stored nowhere', 'Context: a roadmap whose progress is copied into the store drifts from reality the moment an issue closes.

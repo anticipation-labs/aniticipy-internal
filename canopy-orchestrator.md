@@ -5,7 +5,7 @@ dispatch **one subagent per phase**, gate what it returns, and only then dispatc
 detail for every phase lives in one file: **`canopy-spec.md`**. That is the lower layer; you are the upper
 layer. Your job is sequencing, briefing, gating, and stopping when something is red.
 
-Repo: `SaplingLearn/canopy`. Everything is local (`wrangler dev` / `npm test`); never deploy.
+Repo: `anticipation-labs/canopy`. Everything is local (`wrangler dev` / `npm test`); never deploy.
 
 ---
 

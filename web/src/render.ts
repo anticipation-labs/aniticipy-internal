@@ -10,7 +10,7 @@ import type { DashboardData, MyWorkPr, MyWorkTodo } from "@shared/dashboard";
 import { TAGS } from "@shared/vocabulary";
 import { renderMarkdown } from "./markdown";
 import { extractOutline } from "./outline";
-import { REPO_URL } from "./github";
+import { REPO_URL, ORG, PLUGIN_REPO } from "./github";
 import { esc, attr, initialsOf, relTime } from "./ui";
 import { reviewView, type ReviewFilter, type ReviewProps, type DiffViewMode } from "./review";
 import { maintenanceView, type MaintenanceProps, type AssignKind } from "./maintenance";
@@ -267,8 +267,8 @@ function nonmemberCard(): string {
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       </div>
       <div>
-        <div style="font-size:18px;font-weight:600;letter-spacing:-0.01em">Canopy is limited to the Sapling team.</div>
-        <div style="font-size:13.5px;color:var(--fg-55);margin-top:8px;line-height:1.55">Your GitHub account isn't a member of the <span style="font-family:var(--mono);font-size:12.5px">SaplingLearn</span> organization, so there's nothing here for you yet.</div>
+        <div style="font-size:18px;font-weight:600;letter-spacing:-0.01em">Canopy is limited to the Anticipation Labs team.</div>
+        <div style="font-size:13.5px;color:var(--fg-55);margin-top:8px;line-height:1.55">Your GitHub account isn't a member of the <span style="font-family:var(--mono);font-size:12.5px">${esc(ORG)}</span> organization, so there's nothing here for you yet.</div>
       </div>
       <div style="display:flex;align-items:center;gap:10px;padding:9px 14px 9px 9px;border:1px solid var(--border);border-radius:999px">
         <div style="width:26px;height:26px;border-radius:50%;${AVATAR};font-size:10px;font-weight:600;color:var(--fg-70)">OS</div>
@@ -1007,7 +1007,7 @@ function guideView(s: AppState): string {
     </ol>
     ${gFig("settings", `${gEm("Settings")}: mint an MCP access token, pick a theme, and see your org membership.`)}
     <p style="${gP};margin-top:14px">${gStrong("Easiest: install the Canopy plugin.")} It bundles the three skills below ${gStrong("and")} the MCP connection, so there's nothing to wire by hand. In Claude Code:</p>
-    ${gPre(`/plugin marketplace add SaplingLearn/canopy
+    ${gPre(`/plugin marketplace add ${PLUGIN_REPO}
 /plugin install canopy@canopy`)}
     <p style="${gP};margin-top:12px">The plugin reads your token from an environment variable, so export it in the shell that launches your agent (add it to your shell profile to make it stick), then restart:</p>
     ${gPre(`export CANOPY_MCP_TOKEN=canopy_mcp_…`)}

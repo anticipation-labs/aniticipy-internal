@@ -138,7 +138,7 @@ Agents only ever stage; humans confirm via **authenticated HTTP routes that are 
 
 ## Auth — three classes, no new flow (fully built — don't add one)
 
-GitHub OAuth + PKCE, gated to **active members of the `SaplingLearn` org** (`SAPLING_ORG` in
+GitHub OAuth + PKCE, gated to **active members of the `anticipation-labs` org** (`GITHUB_ORG` var, `DEFAULT_ORG` in
 `src/auth/github.ts` — a real external org, do not rename it). Three auth classes, kept separate:
 
 - **Session cookie** (humans, the Hono app): signed cookie; every route except `/auth/login|callback`
@@ -202,6 +202,6 @@ Secrets (`wrangler secret put …`; local: `.dev.vars`): `GITHUB_CLIENT_ID`, `GI
 `COOKIE_SECRET`, `GITHUB_WEBHOOK_SECRET` (HMAC for the webhook — absent → the surface 401s),
 `GITHUB_SERVICE_TOKEN` (app-level token for the scheduled progress recompute — absent → `scheduled()`
 no-ops), `GEMINI_API_KEY` (Google Gemini key for capture-time PR/issue summaries — absent → the excerpt
-fallback). Vars (`[vars]` in `wrangler.toml`): `GITHUB_REPO` (e.g. `SaplingLearn/sapling`). Bindings: `DB`
+fallback). Vars (`[vars]` in `wrangler.toml`): `GITHUB_REPO` (e.g. `anticipation-labs/Anticipy`). Bindings: `DB`
 (D1), `ASSETS` (static). Capture-time summaries call Gemini over REST (`GEMINI_API_KEY`), never at render —
 not a Cloudflare binding, so there is no `[ai]` block. `[triggers] crons` drives the progress recompute backstop.

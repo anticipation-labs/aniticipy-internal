@@ -67,39 +67,42 @@ skills and auto-wires the MCP server in one step, so there's nothing to copy by 
 - `npm run dev` — build web, then `wrangler dev`
 - `npm run deploy` — build web, then `wrangler deploy`
 - `npm run db:create` / `db:migrate:local` / `db:migrate:remote` — D1 provisioning + migrations
-- `npm run build:node` / `npm start` — build and run the Node server (Railway target, below)
 
-## Deploy on Railway (Node)
+## Deploy on Cloudflare
 
-Canopy is written for Cloudflare Workers and still deploys there unchanged. It also runs on
-Railway as a plain Node service. The port swaps the driver, not the SQL: `src/` is untouched,
-all 20 migrations and the three FTS5 tables apply as written, and the Workers test suite still
-covers the same code.
+Canopy runs as a single Cloudflare Worker: `src/index.ts` behind an `[assets]` binding that serves
+the built `web/dist` first and falls through to the Worker for `/ingest`, `/feed`, `/mcp` and the
+rest. State lives in **D1**; there is no other datastore and no container.
 
-How the seam works:
+Everything is declared in `wrangler.toml` — the D1 binding, the `[vars]`, the `[observability]`
+switch, and the six-hourly `[triggers]` cron that refreshes the milestone progress cache.
 
-- **`server/d1.ts`** implements the D1 surface `src/db.ts` uses (`prepare().bind().first()/.all()/.run()`)
-  on top of Node's built-in `node:sqlite`. Node ships SQLite 3.53 with FTS5, so search needs no rewrite.
-- **`server/index.ts`** imports the Workers handler from `src/index.ts` and calls it, so routing, auth
-  and MCP stay defined once. It serves `web/dist` first, mirroring the `[assets]` binding's precedence,
-  and runs the `[triggers]` cron on a timer.
-- **`server/stubs/`** stands in for the `cloudflare:*` modules the `agents` package imports for its
-  Durable Object features. Canopy never executes those paths; the build fails on any unstubbed one.
+**One-time setup**
 
-The database is a SQLite file on a Railway **volume mounted at `/data`**. Without that volume the
-container's disk is replaced on every deploy and the data goes with it. Migrations apply at boot.
+1. `npx wrangler login` — authenticate against the target Cloudflare account.
+2. `npm run db:create` — provision the D1 database, then paste the returned `database_id`
+   into `wrangler.toml`. (Already done for the Anticipy account; the id is committed.)
+3. `npm run db:migrate:remote` — apply `migrations/` to the remote D1.
+4. Set the secrets (below).
 
-Set these service variables (same meanings as the Wrangler secrets above):
-`GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `COOKIE_SECRET`, and optionally `GITHUB_REPO`,
-`ADMIN_LOGINS`, `GITHUB_WEBHOOK_SECRET`, `GEMINI_API_KEY`, `GITHUB_SERVICE_TOKEN`.
-Point the GitHub OAuth App's callback at `https://<railway-host>/auth/callback`.
+**Every deploy**
 
-`/healthz` reports liveness, the database path and the migration count.
+```
+npm run deploy      # builds web/dist, then wrangler deploy
+```
+
+`npm run dev` runs the same thing locally against Miniflare with a local SQLite, so nothing
+touches production D1 until you deploy.
+
+**Vars** (plain text, in `wrangler.toml`): `GITHUB_ORG` gates who may sign in, `GITHUB_REPO` is the
+repo whose issues/PRs drive roadmap progress, `ADMIN_LOGINS` is the comma-separated list of logins
+allowed to run admin actions such as the server-side backfill.
 
 ## Auth & secrets
 
 Auth gates all data routes (session cookie) and `/mcp` (per-person bearer token), allowing
-only active members of the `SaplingLearn` GitHub org. Set these Wrangler secrets:
+only active members of the GitHub org named by the `GITHUB_ORG` var (default `anticipation-labs`;
+see `DEFAULT_ORG` in `src/auth/github.ts`). Set these Wrangler secrets:
 
 - `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` — a GitHub OAuth App whose callback is
   `https://<host>/auth/callback`.
@@ -117,7 +120,7 @@ The three skills and the MCP wiring ship as a Claude Code **plugin**, distribute
 marketplace. Anyone on the team gets both in two commands inside Claude Code:
 
 ```text
-/plugin marketplace add SaplingLearn/canopy
+/plugin marketplace add anticipation-labs/canopy
 /plugin install canopy@canopy
 ```
 

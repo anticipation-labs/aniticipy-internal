@@ -21,14 +21,14 @@
 // Usage:
 //   WEBHOOK_URL=http://localhost:8787/webhook/github \
 //   GITHUB_WEBHOOK_SECRET=dev-webhook-secret \
-//   REPO=SaplingLearn/sapling \
+//   REPO=anticipation-labs/Anticipy \
 //   GITHUB_TOKEN=$(gh auth token) \
 //   node scripts/backfill-events.mjs [--dry]
 //
 // Env:
 //   WEBHOOK_URL            default http://localhost:8787/webhook/github
 //   GITHUB_WEBHOOK_SECRET  required unless --dry (must match the worker's secret)
-//   REPO                   default SaplingLearn/sapling ("owner/repo")
+//   REPO                   default anticipation-labs/Anticipy ("owner/repo")
 //   GITHUB_TOKEN           falls back to `gh auth token` if unset
 //
 // --dry   fetch from GitHub and print the deliveries that WOULD be posted
@@ -39,7 +39,7 @@ import { execFileSync } from "node:child_process";
 
 const WEBHOOK_URL = process.env.WEBHOOK_URL ?? "http://localhost:8787/webhook/github";
 const SECRET = process.env.GITHUB_WEBHOOK_SECRET;
-const REPO = process.env.REPO ?? "SaplingLearn/sapling";
+const REPO = process.env.REPO ?? "anticipation-labs/Anticipy";
 const DRY = process.argv.includes("--dry");
 const DAYS_BACK = 14;
 

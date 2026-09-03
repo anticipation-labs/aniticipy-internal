@@ -5,7 +5,7 @@ triage write-back routes, the triage UI rework, and theming. This is the lower l
 (`canopy-orchestrator.md`) dispatches one subagent per phase against the matching section here. Everything a
 subagent needs to execute its phase is in that phase's section plus the global rules below.
 
-Repo: `SaplingLearn/canopy`. Read `CLAUDE.md` first. Work locally (`wrangler dev` / `npm test`); never
+Repo: `anticipation-labs/canopy`. Read `CLAUDE.md` first. Work locally (`wrangler dev` / `npm test`); never
 deploy. Land small, reviewable commits in each phase's commit order.
 
 ---

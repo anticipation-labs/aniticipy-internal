@@ -1,8 +1,8 @@
 {
   "name": "canopy",
   "owner": {
-    "name": "SaplingLearn",
-    "url": "https://github.com/SaplingLearn"
+    "name": "anticipation-labs",
+    "url": "https://github.com/anticipation-labs"
   },
   "description": "Canopy — the team's shared context store. Skills + MCP wiring to read, orient against, and record into the team brain.",
   "plugins": [
