@@ -4,7 +4,7 @@
 // still render their Phase-1 mock until their task lands.
 
 import "./canopy.css";
-import { render, initialState, firstDocForSpace, docReaderHtml, type AppState, type Screen } from "./render";
+import { render, initialState, firstDocForSpace, docReaderHtml, type AppState, type Screen, type ToastKind } from "./render";
 import {
   getFeed, listDocs, getDoc, search, getRoadmap, getMyDashboard,
   completeMilestone,
@@ -441,8 +441,8 @@ function loadIdentityTasksIfNeeded(): void {
   else rerender();
 }
 
-function flash(msg: string): void {
-  state.toast = msg;
+function flash(msg: string, kind: ToastKind = "ok"): void {
+  state.toast = { msg, kind };
   rerender();
   setTimeout(() => { state.toast = null; rerender(); }, 2200);
 }
@@ -483,7 +483,7 @@ async function runAdminBackfillLoop(): Promise<void> {
   } catch (e) {
     state.backfillSync = null;
     if (e instanceof Unauthorized) { state.view = "auth"; state.authStep = "login"; rerender(); return; }
-    flash(e instanceof ApiError ? e.message : "Sync failed");
+    flash(e instanceof ApiError ? e.message : "Sync failed", "error");
     rerender();
   }
 }
@@ -603,7 +603,7 @@ function dispatch(act: string, arg: string | null, value: string | null): void {
         })
         .catch((e) => {
           if (e instanceof Unauthorized) { state.view = "auth"; state.authStep = "login"; rerender(); return; }
-          flash(e instanceof ApiError ? e.message : "Action failed");
+          flash(e instanceof ApiError ? e.message : "Action failed", "error");
         });
       return;
     }
@@ -672,7 +672,7 @@ function dispatch(act: string, arg: string | null, value: string | null): void {
         .then(() => { flash("Milestone marked done"); loadRoadmap(); })
         .catch((e) => {
           if (e instanceof Unauthorized) { state.view = "auth"; state.authStep = "login"; rerender(); return; }
-          flash(e instanceof ApiError ? e.message : "Could not complete milestone");
+          flash(e instanceof ApiError ? e.message : "Could not complete milestone", "error");
         });
       return;
     }
@@ -732,7 +732,7 @@ function dispatch(act: string, arg: string | null, value: string | null): void {
         .catch((e) => {
           if (e instanceof Unauthorized) { state.view = "auth"; state.authStep = "login"; rerender(); return; }
           // e.g. "cannot assign a free-form triage item; discard it instead" — verbatim from the gate
-          flash(e instanceof ApiError ? e.message : "Could not file this item");
+          flash(e instanceof ApiError ? e.message : "Could not file this item", "error");
         });
       return;
     }
@@ -745,7 +745,7 @@ function dispatch(act: string, arg: string | null, value: string | null): void {
         .then(() => { flash("Discarded — parked, nothing changed"); loadNeedsTriage(); })
         .catch((e) => {
           if (e instanceof Unauthorized) { state.view = "auth"; state.authStep = "login"; rerender(); return; }
-          flash(e instanceof ApiError ? e.message : "Could not discard");
+          flash(e instanceof ApiError ? e.message : "Could not discard", "error");
         });
       return;
     }
@@ -771,7 +771,7 @@ function dispatch(act: string, arg: string | null, value: string | null): void {
         })
         .catch((e) => {
           if (e instanceof Unauthorized) { state.view = "auth"; state.authStep = "login"; rerender(); return; }
-          flash(e instanceof ApiError ? e.message : "Could not map login");
+          flash(e instanceof ApiError ? e.message : "Could not map login", "error");
         });
       return;
     }
@@ -781,14 +781,14 @@ function dispatch(act: string, arg: string | null, value: string | null): void {
         .then(({ token }) => { state.revealedToken = token; state.tokenCopied = false; rerender(); })
         .catch((e) => {
           if (e instanceof Unauthorized) { state.view = "auth"; state.authStep = "login"; rerender(); return; }
-          flash(e instanceof ApiError ? e.message : "Could not mint token");
+          flash(e instanceof ApiError ? e.message : "Could not mint token", "error");
         });
       return;
     case "copyToken": {
       const tk = state.revealedToken;
       if (!tk) return;
       copyToClipboard(tk).then((ok) => {
-        if (!ok) { flash("Couldn't copy — select the token and copy it manually"); return; }
+        if (!ok) { flash("Couldn't copy — select the token and copy it manually", "error"); return; }
         state.tokenCopied = true;
         rerender();
         flash("Token copied to clipboard");

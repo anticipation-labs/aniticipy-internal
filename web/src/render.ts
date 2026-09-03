@@ -29,6 +29,12 @@ export interface Loadable<T> {
   error?: string;
 }
 
+/** A transient bottom-of-screen message. `kind` picks the icon and color:
+ *  "ok" is an accent check, "error" a red alert — a failed action must never
+ *  render as a success. */
+export type ToastKind = "ok" | "error";
+export interface Toast { msg: string; kind: ToastKind }
+
 export interface AppState {
   view: "auth" | "app";
   authStep: "login" | "verifying" | "nonmember";
@@ -77,7 +83,7 @@ export interface AppState {
   revealedToken: string | null;
   tokenCopied: boolean;
   confirmedMilestones: Record<string, boolean>;
-  toast: string | null;
+  toast: Toast | null;
   /** ADMIN Sync GitHub progress — null when idle; present while a (possibly
    *  multi-batch) sync is running, tracking cumulative counts across batches. */
   backfillSync: BackfillSyncState | null;
@@ -1333,9 +1339,16 @@ function appView(s: AppState): string {
   </div>`;
 }
 
-function toastBlock(msg: string): string {
-  return `<div style="position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:50;display:flex;align-items:center;gap:9px;padding:10px 16px;border:1px solid var(--border-strong);border-radius:10px;background:var(--bg);box-shadow:0 8px 30px rgba(0,0,0,.35);font-size:13px;animation:cnpy-pop .25s ease both">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.4"><path d="M20 6 9 17l-5-5"></path></svg>${esc(msg)}
+function toastBlock(t: Toast): string {
+  const error = t.kind === "error";
+  const color = error ? "var(--red)" : "var(--accent)";
+  // alert-circle for a failure, check for a success
+  const icon = error
+    ? `<circle cx="12" cy="12" r="9"></circle><path d="M12 7.5v5"></path><path d="M12 16.2v.01"></path>`
+    : `<path d="M20 6 9 17l-5-5"></path>`;
+  const border = error ? "color-mix(in srgb, var(--red) 45%, var(--border-strong))" : "var(--border-strong)";
+  return `<div role="status" aria-live="polite" style="position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:50;display:flex;align-items:center;gap:9px;padding:10px 16px;border:1px solid ${border};border-radius:10px;background:var(--bg);box-shadow:0 8px 30px rgba(0,0,0,.35);font-size:13px;animation:cnpy-pop .25s ease both">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>${esc(t.msg)}
   </div>`;
 }
 
