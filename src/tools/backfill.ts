@@ -279,8 +279,12 @@ export async function runBackfill(
       }
 
       // Shares the SAME summarized/summaryBatchLimit budget as the PR loop
-      // below — not a separate allowance. See Global Constraints.
-      if (summarized >= summaryBatchLimit) {
+      // below — not a separate allowance. See Global Constraints. The budget
+      // only exists to pace AI calls: with no summarizer configured every row
+      // falls back to an excerpt, which is a local write that never counts as
+      // "done", so walling here would just make the client re-run the same
+      // rows on every batch and never finish.
+      if (issueSummarizer && summarized >= summaryBatchLimit) {
         summaryBudgetExhausted = true;
         continue;
       }
@@ -290,12 +294,12 @@ export async function runBackfill(
         title: issue.title,
         body: issue.body ?? "",
       });
-      summarized++;
+      if (issueSummarizer) summarized++; // only real AI calls draw down the budget
       // storeIssueSummary can still fall back to excerpt if the AI call failed —
       // only count it toward "done" if it actually got a real, structured summary.
       if (stored.model !== "excerpt" && stored.title !== null) issueSummarizedCount++;
 
-      if (summarized < summaryBatchLimit && summaryCallDelayMs > 0) {
+      if (issueSummarizer && summarized < summaryBatchLimit && summaryCallDelayMs > 0) {
         await new Promise((resolve) => setTimeout(resolve, summaryCallDelayMs));
       }
     }
@@ -329,7 +333,7 @@ export async function runBackfill(
         continue;
       }
 
-      if (summarized >= summaryBatchLimit) {
+      if (summarizer && summarized >= summaryBatchLimit) {
         summaryBudgetExhausted = true;
         continue;
       }
@@ -341,7 +345,7 @@ export async function runBackfill(
         title: parsed.pr.title,
         body: parsed.pr.body ?? "",
       });
-      summarized++;
+      if (summarizer) summarized++; // only real AI calls draw down the budget
       // storePrSummary can still fall back to excerpt if the AI call failed —
       // only count it toward "done" if it actually got a real, structured summary.
       if (stored.model !== "excerpt" && stored.title !== null) prSummarizedCount++;
@@ -349,7 +353,7 @@ export async function runBackfill(
       // Pace summarizer calls so one invocation doesn't burst past whatever
       // limit caused the wall above — skip the trailing delay once the batch
       // is done, nothing follows it.
-      if (summarized < summaryBatchLimit && summaryCallDelayMs > 0) {
+      if (summarizer && summarized < summaryBatchLimit && summaryCallDelayMs > 0) {
         await new Promise((resolve) => setTimeout(resolve, summaryCallDelayMs));
       }
     }
