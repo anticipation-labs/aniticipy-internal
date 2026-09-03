@@ -11,7 +11,6 @@ import { type DB, all, first } from "../db";
 export type MyWork = DashboardData;
 
 const PR_LIMIT = 6;
-const TODO_LIMIT = 6;
 
 const EMPTY = (degraded: boolean): MyWork => ({ person: null, previousActivity: [], todo: [], degraded });
 
@@ -130,12 +129,13 @@ export async function getMyWork(db: DB, login: string): Promise<MyWork> {
         nextStep: row.s_next_step,
       });
     }
-    // Same cap as previousActivity: the 6 most recently updated, newest first
-    // (updated_at is a GitHub ISO-8601 UTC string — lexicographic order is
-    // chronological). The dashboard is a glance surface, not the full backlog.
+    // Newest first (updated_at is a GitHub ISO-8601 UTC string, so lexicographic
+    // order is chronological). Unlike previousActivity — a recent-activity glance
+    // list that stays capped — the to-do list is the person's backlog and is
+    // returned in full: truncating it silently hid assigned work from the owner.
     todo.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : a.updatedAt > b.updatedAt ? -1 : 0));
 
-    return { person: personRow.person, previousActivity, todo: todo.slice(0, TODO_LIMIT), degraded: false };
+    return { person: personRow.person, previousActivity, todo, degraded: false };
   } catch {
     return EMPTY(true);
   }

@@ -172,8 +172,8 @@ describe("getMyWork — todo latest-snapshot semantics", () => {
   });
 });
 
-describe("getMyWork — todo cap", () => {
-  it("returns only the 6 most recently updated open assigned issues, newest first", async () => {
+describe("getMyWork — todo completeness", () => {
+  it("returns every open assigned issue, newest first — the backlog is not truncated", async () => {
     for (let n = 1; n <= 7; n++) {
       await ingestEvent(
         env.DB,
@@ -189,7 +189,9 @@ describe("getMyWork — todo cap", () => {
     }
 
     const work = await getMyWork(env.DB, "AndresL230");
-    expect(work.todo.map((t) => t.number)).toEqual([7, 6, 5, 4, 3, 2]); // newest first, oldest one cut — mirrors the PR cap
+    // All seven, newest first. previousActivity is a recent-activity glance list and stays
+    // capped; the to-do list is a backlog and must show everything assigned to the person.
+    expect(work.todo.map((t) => t.number)).toEqual([7, 6, 5, 4, 3, 2, 1]);
   });
 });
 
