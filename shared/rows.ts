@@ -142,7 +142,7 @@ export interface EventRow {
   ref_number: number;
   subject_login: string;
   raw: string;             // JSON snapshot slice — the truth
-  provenance: "webhook" | "backfill";
+  provenance: "webhook" | "backfill" | "canopy";
   occurred_at: string | null;
   recorded_at: string;
   recorded_by: string;

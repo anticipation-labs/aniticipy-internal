@@ -5,10 +5,11 @@ import { sessionGate, isAdmin } from "./auth/principal";
 import { authApp } from "./auth/routes";
 import { consume } from "./consumer";
 import { runBackfill } from "./tools/backfill";
-import { get_doc, list_docs, get_feed, query, list_needs_triage, list_adrs, list_milestone_proposals, list_proposals, list_identity_tasks } from "./tools/reads";
+import { get_doc, list_docs, get_feed, query, list_needs_triage, list_adrs, list_milestone_proposals, list_proposals, list_identity_tasks, list_people } from "./tools/reads";
 import { promote_doc, ratify_adr, promote_milestone_proposal, reject_milestone_proposal, complete_milestone, reject_doc_version, reject_adr, resolve_triage, assign_triage, map_identity, type AssignType } from "./tools/writes";
 import { get_plan } from "./tools/plan";
 import { getMyWork } from "./tools/mywork";
+import { createTask, assignTask, isPriority } from "./tools/assign";
 import type { DashboardData } from "@shared/dashboard";
 
 export const app = new Hono<AppEnv>();
@@ -256,6 +257,60 @@ app.post("/admin/backfill", async (c) => {
   if (!isAdmin(c.env, login)) return c.json({ error: "admin only" }, 403);
   const res = await runBackfill(c.env, login);
   if (!res.ok) return c.json({ error: res.error }, 503);
+  return c.json(res);
+});
+
+// The identity roster (session-gated): logins Canopy already knows a person for.
+// Backs the Assign-work assignee quick-pick. Not an access list — the form also
+// accepts a raw GitHub login, and GitHub itself is the authority on who may be
+// assigned (an assignee without repo access is rejected by the assign path).
+app.get("/people", async (c) => c.json({ people: await list_people(c.env.DB) }));
+
+// Assign work — CREATE a new GitHub issue already assigned to someone (session-
+// gated, any org member: handing a teammate a task is not an admin action, and
+// GitHub gates who can actually receive one). This is the ONE outbound GitHub
+// write in the codebase; see src/tools/assign.ts for why it has to be.
+//
+// The assigner is the authenticated principal, never the client-supplied body —
+// same writer rule the ingestion gate enforces.
+app.post("/tasks", async (c) => {
+  const body = (await c.req.json().catch(() => null)) as {
+    title?: unknown; body?: unknown; assignee?: unknown; priority?: unknown; labels?: unknown;
+  } | null;
+  const title = typeof body?.title === "string" ? body.title : "";
+  const assignee = typeof body?.assignee === "string" ? body.assignee : "";
+  if (!title.trim()) return c.json({ error: "title (non-empty string) required" }, 400);
+  if (!assignee.trim()) return c.json({ error: "assignee (non-empty string) required" }, 400);
+  const priority = isPriority(body?.priority) ? body.priority : null;
+  if (body?.priority != null && body.priority !== "" && priority === null) {
+    return c.json({ error: "priority must be one of P0, P1, P2, P3" }, 400);
+  }
+  const labels = Array.isArray(body?.labels)
+    ? body.labels.filter((l): l is string => typeof l === "string" && l.trim() !== "")
+    : [];
+  const res = await createTask(c.env, c.get("principal").login, {
+    title,
+    body: typeof body?.body === "string" ? body.body : "",
+    assignee,
+    priority,
+    labels,
+  });
+  // 502: the GitHub write itself failed (bad token, no access, rejected field).
+  // Nothing was assigned, so this must NOT read as success.
+  if (!res.ok) return c.json({ error: res.error }, 502);
+  return c.json(res);
+});
+
+// Assign work — put an EXISTING open issue on someone's To-do (additive on
+// GitHub; other assignees are not displaced).
+app.post("/tasks/:number/assign", async (c) => {
+  const number = Number(c.req.param("number"));
+  if (!Number.isInteger(number) || number < 1) return c.json({ error: "invalid issue number" }, 400);
+  const body = (await c.req.json().catch(() => null)) as { assignee?: unknown } | null;
+  const assignee = typeof body?.assignee === "string" ? body.assignee : "";
+  if (!assignee.trim()) return c.json({ error: "assignee (non-empty string) required" }, 400);
+  const res = await assignTask(c.env, c.get("principal").login, number, assignee);
+  if (!res.ok) return c.json({ error: res.error }, 502);
   return c.json(res);
 });
 

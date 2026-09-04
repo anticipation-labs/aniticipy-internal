@@ -61,7 +61,7 @@ export const CapturedEvent = z.object({
   ref_number: z.number().int(),
   subject_login: z.string().min(1),
   raw: z.string(),                   // JSON snapshot slice — the truth
-  provenance: z.enum(["webhook", "backfill"]),
+  provenance: z.enum(["webhook", "backfill", "canopy"]),
   occurred_at: z.string().optional(),
 });
 
