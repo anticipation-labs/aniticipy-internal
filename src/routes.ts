@@ -5,11 +5,11 @@ import { sessionGate, isAdmin } from "./auth/principal";
 import { authApp } from "./auth/routes";
 import { consume } from "./consumer";
 import { runBackfill } from "./tools/backfill";
-import { get_doc, list_docs, get_feed, query, list_needs_triage, list_adrs, list_milestone_proposals, list_proposals, list_identity_tasks, list_people } from "./tools/reads";
+import { get_doc, list_docs, get_feed, query, list_needs_triage, list_adrs, list_milestone_proposals, list_proposals, list_identity_tasks } from "./tools/reads";
 import { promote_doc, ratify_adr, promote_milestone_proposal, reject_milestone_proposal, complete_milestone, reject_doc_version, reject_adr, resolve_triage, assign_triage, map_identity, type AssignType } from "./tools/writes";
 import { get_plan } from "./tools/plan";
 import { getMyWork } from "./tools/mywork";
-import { createTask, assignTask, isPriority } from "./tools/assign";
+import { createTask, assignTask, isPriority, assigneeRoster } from "./tools/assign";
 import type { DashboardData } from "@shared/dashboard";
 
 export const app = new Hono<AppEnv>();
@@ -260,11 +260,14 @@ app.post("/admin/backfill", async (c) => {
   return c.json(res);
 });
 
-// The identity roster (session-gated): logins Canopy already knows a person for.
-// Backs the Assign-work assignee quick-pick. Not an access list — the form also
-// accepts a raw GitHub login, and GitHub itself is the authority on who may be
-// assigned (an assignee without repo access is rejected by the assign path).
-app.get("/people", async (c) => c.json({ people: await list_people(c.env.DB) }));
+// The assignee roster (session-gated): who GitHub says can be assigned on
+// GITHUB_REPO, with display names filled in from the identity map. Deliberately
+// NOT the `people` table — that maps logins to names for attributing past
+// events, and as a roster it both listed people who had left (whom GitHub would
+// refuse to assign) and omitted people who had joined. `degraded:true` means the
+// GitHub lookup failed and this fell back to the identity map; the form stays
+// usable either way, since it also accepts a raw GitHub login.
+app.get("/assignees", async (c) => c.json(await assigneeRoster(c.env)));
 
 // Assign work — CREATE a new GitHub issue already assigned to someone (session-
 // gated, any org member: handing a teammate a task is not an admin action, and
