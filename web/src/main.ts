@@ -11,6 +11,7 @@ import {
   listStagedProposals, listAdrs, promoteDoc, rejectDoc, ratifyAdr, rejectAdr,
   listNeedsTriage, listIdentityTasks, assignTriage, discardTriage, mapIdentity, type AssignTarget,
   getMe, logout, mintMcpToken, adminBackfill,
+  listPeople, createTask, assignTask,
   Unauthorized, NotFound, ApiError,
 } from "./api";
 import { decodeReviewId } from "./triage-map";
@@ -43,13 +44,13 @@ function rerender(): void {
   const field = active?.getAttribute?.("data-field") ?? null;
   let selStart = 0;
   let selEnd = 0;
-  if (field && active instanceof HTMLInputElement) {
+  if (field && (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement)) {
     selStart = active.selectionStart ?? 0;
     selEnd = active.selectionEnd ?? 0;
   }
   mount.innerHTML = render(state);
   if (field) {
-    const el = mount.querySelector<HTMLInputElement>(`[data-field="${field}"]`);
+    const el = mount.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[data-field="${field}"]`);
     if (el) {
       el.focus();
       try { el.setSelectionRange(selStart, selEnd); } catch { /* non-text input */ }
@@ -194,6 +195,17 @@ function loadMyWork(): void {
       rerender();
     });
 }
+// The identity roster behind the Assign-work quick-pick. Best-effort: an empty
+// or failed roster just means no chips — the free-text login field still works,
+// so this never blocks assigning and never surfaces an error.
+function loadPeopleIfNeeded(): void {
+  if (state.people.status !== "idle") return;
+  state.people = { status: "loading", data: [] };
+  listPeople()
+    .then((people) => { state.people = { status: "ok", data: people }; rerender(); })
+    .catch(() => { state.people = { status: "error", data: [] }; });
+}
+
 function loadMyWorkIfNeeded(): void {
   if (state.mywork.status === "idle") loadMyWork();
   else rerender();
@@ -488,6 +500,43 @@ async function runAdminBackfillLoop(): Promise<void> {
   }
 }
 
+// Assign work: the one client path that causes a GitHub write. On success the
+// form is cleared and My Work reloaded — if you assigned yourself, the new task
+// appears in To-do immediately (the server captured it on the way back, so this
+// does not wait on the webhook). `assignWorkBusy` guards a double-submit, which
+// on the "new" path would otherwise open two identical issues.
+async function runAssignWork(): Promise<void> {
+  const assignee = state.assignWorkAssignee.trim();
+  state.assignWorkBusy = true;
+  rerender();
+  try {
+    const res = state.assignWorkMode === "new"
+      ? await createTask({
+          title: state.assignWorkTitle.trim(),
+          body: state.assignWorkBody,
+          assignee,
+          priority: state.assignWorkPriority,
+        })
+      : await assignTask(Number(state.assignWorkIssue.trim()), assignee);
+
+    state.assignWorkBusy = false;
+    state.assignWorkOpen = false;
+    state.assignWorkTitle = "";
+    state.assignWorkBody = "";
+    state.assignWorkIssue = "";
+    state.assignWorkPriority = null;
+    flash(`#${res.number} assigned to ${res.assignee} — it's on their To-do now`);
+    loadMyWork();
+  } catch (e) {
+    state.assignWorkBusy = false;
+    if (e instanceof Unauthorized) { state.view = "auth"; state.authStep = "login"; rerender(); return; }
+    // The GitHub write failed, so nothing was assigned. Keep the form open with
+    // the draft intact — retyping a task description to retry is punishing.
+    flash(e instanceof ApiError ? e.message : "Could not assign the task", "error");
+    rerender();
+  }
+}
+
 // Copy text to the clipboard. Prefers the async Clipboard API (available on
 // localhost + https); falls back to a hidden-textarea execCommand for older or
 // non-secure contexts. Resolves to whether the copy succeeded.
@@ -685,6 +734,40 @@ function dispatch(act: string, arg: string | null, value: string | null): void {
       runAdminBackfillLoop();
       return;
     }
+    // ── Assign work (My Work) ────────────────────────────────────────────────
+    case "assignWorkToggle":
+      state.assignWorkOpen = !state.assignWorkOpen;
+      if (state.assignWorkOpen) loadPeopleIfNeeded();
+      break;
+    case "assignWorkMode":
+      if (arg === "new" || arg === "existing") state.assignWorkMode = arg;
+      break;
+    case "assignWorkTitle": state.assignWorkTitle = value ?? ""; break;
+    case "assignWorkBody": state.assignWorkBody = value ?? ""; break;
+    case "assignWorkIssue": state.assignWorkIssue = value ?? ""; break;
+    case "assignWorkAssignee": state.assignWorkAssignee = value ?? ""; break;
+    case "assignWorkPriority":
+      // Clicking the active chip clears it — priority is optional, and there is
+      // no separate "none" chip to click back to.
+      if (arg === "P0" || arg === "P1" || arg === "P2" || arg === "P3") {
+        state.assignWorkPriority = state.assignWorkPriority === arg ? null : arg;
+      }
+      break;
+    case "assignWorkPickPerson":
+      // A chip just fills the text field — that field stays the single source of
+      // truth, so the chip and free-text paths post identical values.
+      if (arg) state.assignWorkAssignee = state.assignWorkAssignee.toLowerCase() === arg.toLowerCase() ? "" : arg;
+      break;
+    case "assignWorkSubmit": {
+      if (state.assignWorkBusy) return;
+      const who = state.assignWorkAssignee.trim();
+      if (!who) return;
+      if (state.assignWorkMode === "new") {
+        if (!state.assignWorkTitle.trim()) return;
+      } else if (!/^\d+$/.test(state.assignWorkIssue.trim())) return;
+      runAssignWork();
+      return;
+    }
     // ── Maintenance (mock-driven until the backend reads land — no writes) ───
     case "maintAssignToggle": {
       if (!arg) return;
@@ -827,7 +910,7 @@ mount.addEventListener("change", (e) => {
 
 mount.addEventListener("input", (e) => {
   const el = e.target as HTMLElement;
-  if (el instanceof HTMLInputElement && el.dataset.act) {
+  if ((el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) && el.dataset.act) {
     dispatch(el.dataset.act, el.dataset.arg ?? null, el.value);
   }
 });

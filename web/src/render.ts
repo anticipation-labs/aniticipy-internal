@@ -3,7 +3,7 @@
 // `.map().join('')`, `sc-if` to ternaries, and `onClick="{{ fn }}"` to
 // `data-act` / `data-arg` attributes dispatched in main.ts.
 
-import type { Me, StagedProposal, IdentityTask } from "./api";
+import type { Me, StagedProposal, IdentityTask, PersonEntry, TaskPriority } from "./api";
 import type { FeedRow, DocRow, DocVersionRow, AdrRow, NeedsTriageRow } from "@shared/rows";
 import type { QueryResult, QueryPrimary, QueryPointer, Authority, MilestoneWithProgress, PlanView } from "./api";
 import type { DashboardData, MyWorkPr, MyWorkTodo } from "@shared/dashboard";
@@ -84,6 +84,20 @@ export interface AppState {
   tokenCopied: boolean;
   confirmedMilestones: Record<string, boolean>;
   toast: Toast | null;
+  // ── Assign work (My Work): the compose form for handing someone a task.
+  // Draft state lives here (not in the DOM) because every keystroke rerenders;
+  // `assignWorkBusy` disables the submit so a slow GitHub write can't be
+  // double-fired into two issues.
+  assignWorkOpen: boolean;
+  assignWorkMode: "new" | "existing";
+  assignWorkTitle: string;
+  assignWorkBody: string;
+  assignWorkAssignee: string;
+  assignWorkPriority: TaskPriority | null;
+  assignWorkIssue: string;
+  assignWorkBusy: boolean;
+  /** The identity roster backing the assignee quick-pick. */
+  people: Loadable<PersonEntry[]>;
   /** ADMIN Sync GitHub progress — null when idle; present while a (possibly
    *  multi-batch) sync is running, tracking cumulative counts across batches. */
   backfillSync: BackfillSyncState | null;
@@ -132,6 +146,15 @@ export function initialState(): AppState {
     tokenCopied: false,
     confirmedMilestones: {},
     toast: null,
+    assignWorkOpen: false,
+    assignWorkMode: "new",
+    assignWorkTitle: "",
+    assignWorkBody: "",
+    assignWorkAssignee: "",
+    assignWorkPriority: null,
+    assignWorkIssue: "",
+    assignWorkBusy: false,
+    people: { status: "idle", data: [] },
     backfillSync: null,
   };
 }
@@ -429,6 +452,15 @@ function header(s: AppState): string {
       ${syncing ? "Syncing&hellip;" : "Sync GitHub"}
     </button>` : "";
 
+  // My Work, EVERY member (not admin-gated): open the Assign-work form. Handing a
+  // teammate a task is ordinary collaboration, and GitHub is the real authority on
+  // who can receive one — an assignee without repo access is rejected server-side.
+  const assignControls = s.screen === "mywork"
+    ? `<button data-act="assignWorkToggle" title="Assign work to a teammate" class="${s.assignWorkOpen ? "cnpy-accentbtn" : "cnpy-outlinebtn"}" style="display:flex;align-items:center;gap:7px;padding:6px 12px;border-radius:8px;${s.assignWorkOpen ? "background:var(--accent);color:var(--accent-fg)" : "border:1px solid var(--border-strong);color:var(--fg-70)"};font-size:12.5px;font-weight:500">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6M22 11h-6"></path></svg>
+      ${s.assignWorkOpen ? "Close" : "Assign work"}
+    </button>` : "";
+
   const themeBtn = `<button data-act="cycleTheme" title="Toggle theme" class="cnpy-iconbtn" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--border);display:grid;place-items:center;color:var(--fg-55)">
       ${dark
         ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"></path></svg>`
@@ -441,7 +473,7 @@ function header(s: AppState): string {
       ${filterChip}
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex:none">
-      ${feedControls}${docsControls}${roadmapControls}${myworkControls}${themeBtn}
+      ${feedControls}${docsControls}${roadmapControls}${assignControls}${myworkControls}${themeBtn}
     </div>
   </header>`;
 }
@@ -1258,6 +1290,90 @@ export function todoCard(t: MyWorkTodo): string {
   </div>`;
 }
 
+// ── assign work (My Work compose form) ───────────────────────────────────────
+// The only Canopy surface that writes OUT to GitHub. Two modes over one form:
+// "new" opens a fresh issue already assigned; "existing" puts an open issue on
+// someone's To-do. Priority rides on the title as "[P1] …" because that is what
+// mywork.ts parses back out of the captured event — GitHub has no priority field.
+const AW_INPUT = "width:100%;box-sizing:border-box;border:1px solid var(--border-strong);border-radius:8px;background:var(--bg);color:var(--fg);font-size:13.5px;font-family:inherit;padding:9px 11px;outline:none";
+const AW_LABEL = "font-family:var(--mono);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--fg-40);display:block;margin-bottom:7px";
+
+function awChip(label: string, act: string, arg: string, active: boolean): string {
+  const style = active
+    ? "border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent)"
+    : "border:1px solid var(--border);color:var(--fg-55)";
+  return `<button data-act="${attr(act)}" data-arg="${attr(arg)}" style="${style};border-radius:7px;padding:5px 11px;font-size:12px;font-weight:600;font-family:var(--mono)">${esc(label)}</button>`;
+}
+
+/** Assignee row: quick-pick chips off the identity roster, plus a free-text
+ *  GitHub login (a teammate with no captured event yet is not in `people`, and
+ *  must still be assignable). The text field is the single source of truth —
+ *  a chip just fills it in, so both paths post the same value. */
+function awAssignee(s: AppState): string {
+  const roster = s.people.data;
+  const chips = roster.length
+    ? `<div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:9px">${roster
+        .map((p) => awChip(p.person || p.login, "assignWorkPickPerson", p.login, s.assignWorkAssignee.toLowerCase() === p.login.toLowerCase()))
+        .join("")}</div>`
+    : "";
+  return `<div>
+    <label style="${AW_LABEL}">Assign to</label>
+    ${chips}
+    <input data-act="assignWorkAssignee" data-field="aw-assignee" value="${attr(s.assignWorkAssignee)}" placeholder="GitHub login, e.g. ${attr(roster[0]?.login ?? "octocat")}" style="${AW_INPUT}" />
+  </div>`;
+}
+
+export function assignWorkPanel(s: AppState): string {
+  const tab = (label: string, mode: "new" | "existing"): string => {
+    const on = s.assignWorkMode === mode;
+    return `<button data-act="assignWorkMode" data-arg="${mode}" style="padding:6px 14px;border-radius:7px;font-size:12.5px;font-weight:600;color:${on ? "var(--fg)" : "var(--fg-55)"};background:${on ? "var(--hover)" : "transparent"}">${label}</button>`;
+  };
+
+  const fields = s.assignWorkMode === "new"
+    ? `<div>
+        <label style="${AW_LABEL}">Task</label>
+        <input data-act="assignWorkTitle" data-field="aw-title" value="${attr(s.assignWorkTitle)}" placeholder="What needs doing?" style="${AW_INPUT}" />
+      </div>
+      <div>
+        <label style="${AW_LABEL}">Details <span style="text-transform:none;letter-spacing:0;font-family:inherit;font-weight:400">(optional — this becomes the issue body, and what the summarizer reads)</span></label>
+        <textarea data-act="assignWorkBody" data-field="aw-body" rows="4" placeholder="Context, acceptance criteria, links&hellip;" style="${AW_INPUT};resize:vertical;line-height:1.6">${esc(s.assignWorkBody)}</textarea>
+      </div>
+      <div>
+        <label style="${AW_LABEL}">Priority <span style="text-transform:none;letter-spacing:0;font-family:inherit;font-weight:400">(optional)</span></label>
+        <div style="display:flex;gap:7px">${(["P0", "P1", "P2", "P3"] as const)
+          .map((p) => awChip(p, "assignWorkPriority", p, s.assignWorkPriority === p))
+          .join("")}</div>
+      </div>`
+    : `<div>
+        <label style="${AW_LABEL}">Issue number</label>
+        <input data-act="assignWorkIssue" data-field="aw-issue" value="${attr(s.assignWorkIssue)}" inputmode="numeric" placeholder="e.g. 42" style="${AW_INPUT}" />
+        <div style="font-size:11.5px;color:var(--fg-40);margin-top:7px">Adds the person to the issue's assignees on GitHub — anyone already assigned stays.</div>
+      </div>`;
+
+  const ready = s.assignWorkMode === "new"
+    ? s.assignWorkTitle.trim() !== "" && s.assignWorkAssignee.trim() !== ""
+    : /^\d+$/.test(s.assignWorkIssue.trim()) && s.assignWorkAssignee.trim() !== "";
+  const canSubmit = ready && !s.assignWorkBusy;
+  const submitLabel = s.assignWorkBusy
+    ? "Assigning&hellip;"
+    : s.assignWorkMode === "new" ? "Create &amp; assign" : "Assign issue";
+
+  return `<div style="border:1px solid var(--border-strong);border-radius:16px;padding:20px 22px;margin-bottom:8px;background:color-mix(in srgb,var(--fg) 2.5%,transparent)">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px">
+      <div style="display:flex;gap:4px">${tab("New task", "new")}${tab("Existing issue", "existing")}</div>
+      <div style="font-size:11.5px;color:var(--fg-40)">Creates real GitHub work in <span style="font-family:var(--mono)">${esc(ORG)}</span> and lands on their To-do</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:15px">
+      ${fields}
+      ${awAssignee(s)}
+    </div>
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">
+      <button data-act="assignWorkToggle" class="cnpy-rejectbtn" style="background:transparent;border:1px solid var(--border);border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:500;color:var(--fg-70)">Cancel</button>
+      <button data-act="assignWorkSubmit" ${canSubmit ? "" : "disabled"} class="${canSubmit ? "cnpy-accentbtn" : ""}" style="border-radius:8px;padding:8px 16px;font-size:12.5px;font-weight:600;${canSubmit ? "background:var(--accent);color:var(--accent-fg)" : "border:1px solid var(--border);color:var(--fg-40);cursor:default"}">${submitLabel}</button>
+    </div>
+  </div>`;
+}
+
 function myWorkView(s: AppState): string {
   const slice = s.mywork;
   if (slice.status === "loading" && !slice.data) return wrapMyWork(notice("Loading your work&hellip;"));
@@ -1284,8 +1400,11 @@ function myWorkView(s: AppState): string {
 
   const activity = mwSection("Previous activity", activityBody);
   const todo = mwSection("To-do", todoBody);
+  // The compose form sits directly above To-do: the list it feeds is the one
+  // right below it (yours), and the assignee's own To-do is the mirror of it.
+  const assign = s.assignWorkOpen ? `<div style="margin-top:8px">${assignWorkPanel(s)}</div>` : "";
 
-  return wrapMyWork(`${hero}${todo}${activity}`);
+  return wrapMyWork(`${hero}${assign}${todo}${activity}`);
 }
 
 /** A list slice that hasn't produced data yet (idle/loading with nothing cached). */

@@ -21,7 +21,7 @@ database_id = "4651b392-2a14-462a-8e1f-e3149be7cc54"
 GITHUB_ORG = "anticipation-labs"
 GITHUB_REPO = "anticipation-labs/Anticipy"
 # Comma-separated GitHub logins allowed to run admin actions (e.g. the server-side backfill).
-ADMIN_LOGINS = "Jose-Gael-Cruz-Lopez"
+ADMIN_LOGINS = "Jose-Gael-Cruz-Lopez,omize10"
 
 [observability]
 enabled = true

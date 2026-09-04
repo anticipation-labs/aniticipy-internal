@@ -78,7 +78,7 @@ interface GhPrListItem {
   milestone?: GhMilestoneLite | null;
   base?: { ref: string } | null;
 }
-interface GhIssueListItem {
+export interface GhIssueListItem {
   number: number;
   title: string;
   body: string | null;
@@ -124,8 +124,16 @@ function prClosedDelivery(pr: GhPrListItem) {
   };
 }
 
-function issueDelivery(issue: GhIssueListItem) {
-  const assignee = issue.assignees?.[0] ?? issue.assignee ?? null;
+/** The `issues` delivery body eventsFromDelivery() reads for one issue.
+ *  `assigneeLogin` (used by the assign path, never by the backfill sweep) pins
+ *  which assignee the delivery is ABOUT — on a multi-assignee issue, assignees[0]
+ *  is not necessarily the person just assigned, and the semantic key + subject
+ *  are both derived from it. */
+export function issueDelivery(issue: GhIssueListItem, assigneeLogin?: string) {
+  const pinned = assigneeLogin
+    ? (issue.assignees ?? []).find((a) => a.login.toLowerCase() === assigneeLogin.toLowerCase()) ?? { login: assigneeLogin }
+    : null;
+  const assignee = pinned ?? issue.assignees?.[0] ?? issue.assignee ?? null;
   const action = assignee ? "assigned" : "opened";
   return {
     action,

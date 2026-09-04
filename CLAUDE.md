@@ -52,7 +52,8 @@ Triage. That staging-plus-confirmation loop is what keeps the store trustworthy 
 - `src/` — the Worker. `index.ts` (fetch entry: `/mcp` by bearer, `/webhook/github` by HMAC, everything
   else to the Hono app; plus the `scheduled()` progress backstop), `routes.ts` (Hono HTTP), `mcp.ts` (MCP
   tools), `consumer.ts` (THE GATE), `webhook.ts` (GitHub event capture), `tools/` (`writes.ts`, `reads.ts`,
-  `plan.ts`, `mywork.ts`, `progress.ts`, `summarize.ts`), `db.ts` (D1 helpers), `auth/`, `env.ts`.
+  `plan.ts`, `mywork.ts`, `progress.ts`, `summarize.ts`, `assign.ts`), `db.ts` (D1 helpers), `auth/`,
+  `env.ts`.
 - `migrations/` — D1 SQL (`0001_init` … `0010_triage_resolve`, then `0011_fts_recreate`,
   `0012_events_plan` [events / pr_summaries / milestone_progress / people / plan / plan_versions +
   `milestones.phase`], `0013_roadmap_fts`, `0014_drop_focus` [retires `0007_focus`],
@@ -168,6 +169,22 @@ events) and the `scheduled()` cron backstop (`recomputeAllProgress`, `GITHUB_SER
 render path). `github_ref` is bare (a milestone number OR a JSON array of issue numbers) resolved against
 `GITHUB_REPO` — only by those two writers, never at render.
 
+**Assigning work** (`POST /tasks`, `POST /tasks/:number/assign` → `tools/assign.ts`) is the ONE place
+Canopy writes OUT to GitHub — everything else in the codebase only reads it. It exists because there is no
+Canopy-local task store: To-do is a projection of "open issues assigned to you", so putting work on
+someone's To-do means putting it on the GitHub issue. `createTask` opens a new issue already assigned;
+`assignTask` adds an assignee to an existing one (additive — GitHub's add-assignees endpoint does not
+displace anyone). Both use `GITHUB_SERVICE_TOKEN` (needs **`issues:write`** on `GITHUB_REPO`), then capture
+the result locally through the SAME pipeline a webhook delivery takes — `issueDelivery()` → the pure
+`eventsFromDelivery()` → the `ingestEvent` gate fn — so the task lands on My Work without waiting for the
+webhook round-trip. Provenance is `canopy` (a third value beside `webhook`/`backfill`); the writer is the
+authenticated assigner and `subject_login` is the assignee. The webhook's own later delivery of the same
+assignment derives an identical `semantic_key` and drops as `unchanged` — no double-write. Priority rides
+on the GitHub title as `[P0]`–`[P3]` because that is what `mywork.ts` parses back out; GitHub has no
+priority field, and a Canopy-only column would be lost on the next capture. These routes are **session-
+gated, NOT admin-gated** (handing a teammate a task is ordinary collaboration; GitHub is the authority on
+who may receive one — an assignee it silently drops is reported as a failure, never as success).
+
 **My Work** (`GET /me/dashboard`, MCP `get_my_work` → `getMyWork`) is a D1-only projection over captured
 events: two separate lists — `previousActivity` (summarized merged/closed PRs where the person is the
 subject, 5 most recent) and `todo` (their open assigned issues, 5 most recently updated, each carrying its own stored summary) —
@@ -193,6 +210,10 @@ that renders a "No summary recorded" placeholder. Stored as columns on `pr_summa
   GitHub I/O and the PR summarizer are dependency-injected (`fetchImpl?: typeof fetch`, `summarizer`)
   because the vitest pool exports no fetch/AI mock — stub at the `Response`/`Summarizer` level, never hit
   the network in tests.
+- The identity map (`people`) is what makes a captured event visible: an unmapped login yields an EMPTY My
+  Work. A newly-assigned person who isn't mapped surfaces as a pending identity task in Maintenance
+  (`ensure_identity_task` raises it on the event write) — map them there and their backlog appears with no
+  backfill.
 - **Deferred seams — do NOT activate:** Cloudflare Queue, Vectorize, the GitHub OAuth provider for MCP.
   They exist as `// SEAM:` comments only.
 
@@ -200,8 +221,9 @@ that renders a "No summary recorded" placeholder. Stored as columns on `pr_summa
 
 Secrets (`wrangler secret put …`; local: `.dev.vars`): `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`,
 `COOKIE_SECRET`, `GITHUB_WEBHOOK_SECRET` (HMAC for the webhook — absent → the surface 401s),
-`GITHUB_SERVICE_TOKEN` (app-level token for the scheduled progress recompute — absent → `scheduled()`
-no-ops), `GEMINI_API_KEY` (Google Gemini key for capture-time PR/issue summaries — absent → the excerpt
+`GITHUB_SERVICE_TOKEN` (app-level token for the scheduled progress recompute AND the outbound task-assign
+writes — needs `issues:write` on `GITHUB_REPO` for the latter; absent → `scheduled()` no-ops and assigning
+502s), `GEMINI_API_KEY` (Google Gemini key for capture-time PR/issue summaries — absent → the excerpt
 fallback). Vars (`[vars]` in `wrangler.toml`): `GITHUB_REPO` (e.g. `anticipation-labs/Anticipy`). Bindings: `DB`
 (D1), `ASSETS` (static). Capture-time summaries call Gemini over REST (`GEMINI_API_KEY`), never at render —
 not a Cloudflare binding, so there is no `[ai]` block. `[triggers] crons` drives the progress recompute backstop.

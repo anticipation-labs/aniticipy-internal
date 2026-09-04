@@ -1,4 +1,4 @@
-import type { DocRow, DocVersionRow, FeedRow, AdrRow, NeedsTriageRow, MilestoneProposalRow, MilestoneRow, MilestoneProgressRow, PlanRow, EventRow, IdentityTaskRow } from "@shared/rows";
+import type { DocRow, DocVersionRow, FeedRow, AdrRow, NeedsTriageRow, MilestoneProposalRow, MilestoneRow, MilestoneProgressRow, PlanRow, EventRow, IdentityTaskRow, PersonRow } from "@shared/rows";
 import type { QueryRequest, QueryResult, QueryPrimary, QueryPointer, Authority } from "@shared/contract";
 import { type DB, first, all } from "../db";
 import { getProgress } from "./progress";
@@ -520,4 +520,14 @@ export async function query(db: DB, req: QueryRequest): Promise<QueryResult> {
   }));
 
   return { primary, pointers, meta: { engine: "fts5", total: primary.length + pointers.length } };
+}
+
+/**
+ * The identity map as a roster: every login Canopy already knows a person for.
+ * Backs the assignee picker on the Assign-work form — a quick-pick list, not a
+ * restriction (the form still accepts any GitHub login, because a brand-new
+ * teammate is unmapped until their first captured event raises an identity task).
+ */
+export async function list_people(db: DB): Promise<PersonRow[]> {
+  return all<PersonRow>(db, `SELECT login, person FROM people ORDER BY person ASC`);
 }

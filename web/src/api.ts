@@ -234,6 +234,32 @@ export function mapIdentity(login: string, person: string): Promise<{ ok: true; 
   return postJson(`/identity-tasks/${encodeURIComponent(login)}/map`, { person });
 }
 
+// ── Assign work (My Work): the one surface that writes OUT to GitHub ─────────
+// createTask opens a new issue already assigned; assignTask puts an existing
+// open issue on someone's To-do. Both capture the assignment locally on the way
+// back, so My Work reflects it without waiting for the webhook.
+export interface PersonEntry { login: string; person: string }
+export function listPeople(): Promise<PersonEntry[]> {
+  return getJson<{ people: PersonEntry[] }>("/people").then((r) => r.people);
+}
+
+export type TaskPriority = "P0" | "P1" | "P2" | "P3";
+export interface NewTask {
+  title: string;
+  body?: string;
+  assignee: string;
+  priority?: TaskPriority | null;
+  labels?: string[];
+}
+export interface AssignedTask { ok: true; number: number; url: string; captured: boolean; assignee: string }
+
+export function createTask(t: NewTask): Promise<AssignedTask> {
+  return postJson<AssignedTask>("/tasks", t);
+}
+export function assignTask(issueNumber: number, assignee: string): Promise<AssignedTask> {
+  return postJson<AssignedTask>(`/tasks/${issueNumber}/assign`, { assignee });
+}
+
 export function logout(): Promise<{ ok: true }> {
   return postJson<{ ok: true }>("/auth/logout");
 }
