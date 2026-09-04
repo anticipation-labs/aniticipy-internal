@@ -123,7 +123,7 @@ export function buildCanopyMcpServer(env: Env, principal: Principal): McpServer 
 
   server.tool(
     "get_my_work",
-    "Your personal My Work projection from captured GitHub events (no live GitHub): previous-activity (your 5 most recent summarized merged/closed PRs) and to-do (your open assigned issues). Read-only.",
+    "Your personal My Work projection from captured GitHub events (no live GitHub): previous-activity (your 6 most recent summarized merged/closed PRs) and to-do (every open issue assigned to you, newest first, not truncated). Read-only.",
     {},
     async () => runTool(() => getMyWork(env.DB, principal.login))
   );
