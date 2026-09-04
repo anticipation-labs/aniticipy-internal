@@ -11,7 +11,7 @@ import {
   listStagedProposals, listAdrs, promoteDoc, rejectDoc, ratifyAdr, rejectAdr,
   listNeedsTriage, listIdentityTasks, assignTriage, discardTriage, mapIdentity, type AssignTarget,
   getMe, logout, mintMcpToken, adminBackfill,
-  listPeople, createTask, assignTask,
+  listAssignees, createTask, assignTask,
   Unauthorized, NotFound, ApiError,
 } from "./api";
 import { decodeReviewId } from "./triage-map";
@@ -195,13 +195,14 @@ function loadMyWork(): void {
       rerender();
     });
 }
-// The identity roster behind the Assign-work quick-pick. Best-effort: an empty
-// or failed roster just means no chips — the free-text login field still works,
-// so this never blocks assigning and never surfaces an error.
+// The roster behind the Assign-work quick-pick: who GitHub says can be assigned
+// on the repo. Best-effort — an empty or failed roster just means no chips, and
+// the free-text login field still works, so this never blocks assigning and
+// never surfaces an error.
 function loadPeopleIfNeeded(): void {
   if (state.people.status !== "idle") return;
   state.people = { status: "loading", data: [] };
-  listPeople()
+  listAssignees()
     .then((people) => { state.people = { status: "ok", data: people }; rerender(); })
     .catch(() => { state.people = { status: "error", data: [] }; });
 }

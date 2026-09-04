@@ -94,7 +94,7 @@ export interface GhIssueListItem {
 }
 
 // The `rel="next"` URL from a GitHub Link header, or null when there is no next page.
-function nextLink(res: Response): string | null {
+export function nextLink(res: Response): string | null {
   const link = res.headers.get("link");
   const next = link?.split(",").find((part) => part.includes('rel="next"'));
   return next ? (next.match(/<([^>]+)>/)?.[1] ?? null) : null;

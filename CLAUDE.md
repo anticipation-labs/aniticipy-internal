@@ -169,6 +169,13 @@ events) and the `scheduled()` cron backstop (`recomputeAllProgress`, `GITHUB_SER
 render path). `github_ref` is bare (a milestone number OR a JSON array of issue numbers) resolved against
 `GITHUB_REPO` — only by those two writers, never at render.
 
+**The assignee roster** (`GET /assignees` → `assigneeRoster`) is **GitHub's** `/repos/:repo/assignees`,
+NOT the `people` table. `people` maps a login to a display name so past events can be ATTRIBUTED; as a
+roster it was wrong in both directions — it listed people who had left (whom GitHub then refuses to
+assign) and omitted people who had joined. `people` still supplies the display name for a login it knows
+(matched case-insensitively); an unmapped login shows as itself. A GitHub failure degrades to the identity
+map (`degraded:true`) rather than breaking the form, which also accepts a raw login.
+
 **Assigning work** (`POST /tasks`, `POST /tasks/:number/assign` → `tools/assign.ts`) is the ONE place
 Canopy writes OUT to GitHub — everything else in the codebase only reads it. It exists because there is no
 Canopy-local task store: To-do is a projection of "open issues assigned to you", so putting work on

@@ -1,9 +1,12 @@
 import type { Env } from "../env";
 import { ingestEvent } from "../consumer";
 import { eventsFromDelivery } from "../webhook";
-import { type GhIssueListItem, issueDelivery } from "./backfill";
+import { type GhIssueListItem, issueDelivery, nextLink } from "./backfill";
 import { type Summarizer, type IssueSummary, geminiIssueSummarizer, storeIssueSummary } from "./summarize";
 import { applyEventProgress } from "./progress";
+import { list_people } from "./reads";
+import { all } from "../db";
+import type { PersonRow } from "@shared/rows";
 
 // Human-triggered task assignment: the ONE place Canopy writes OUT to GitHub.
 //
@@ -224,4 +227,86 @@ export async function assignTask(
 
   const captured = await captureAssignment(env, principalLogin, issue, assignee, opts);
   return { ok: true, number: issue.number, url: issue.html_url, captured, assignee };
+}
+
+
+// ── who can be assigned ──────────────────────────────────────────────────────
+// The assignee picker's roster. This asks GITHUB, not Canopy: `people` is an
+// identity map for ATTRIBUTING past events to a display name, and using it as a
+// roster was wrong in both directions — it listed people who left (and whom
+// GitHub would refuse to assign) while omitting people who joined. GitHub's
+// /assignees endpoint answers the actual question, "who can be assigned on this
+// repo", and stays right on its own as the team changes.
+//
+// `people` still supplies the DISPLAY NAME for a login it knows, so the chips
+// read "Jose" rather than "Jose-Gael-Cruz-Lopez"; an unmapped login shows as
+// itself. On any GitHub failure the caller falls back to the identity map — a
+// stale roster beats a form you cannot use.
+
+export interface Assignee {
+  login: string;
+  person: string;
+}
+
+export interface AssigneeList {
+  ok: boolean;
+  error?: string;
+  assignees: Assignee[];
+}
+
+export async function listAssignees(
+  env: Env,
+  opts?: { fetchImpl?: typeof fetch }
+): Promise<AssigneeList> {
+  const token = env.GITHUB_SERVICE_TOKEN;
+  const repo = env.GITHUB_REPO;
+  if (!token || !repo) return { ok: false, error: "service token or repo not configured", assignees: [] };
+
+  const doFetch = opts?.fetchImpl ?? fetch;
+  const logins: string[] = [];
+  let url: string | null = `https://api.github.com/repos/${repo}/assignees?per_page=100`;
+  while (url) {
+    const res: Response = await doFetch(url, {
+      headers: {
+        authorization: `Bearer ${token}`,
+        accept: GH_API,
+        "user-agent": USER_AGENT,
+        "x-github-api-version": "2022-11-28",
+      },
+    });
+    if (!res.ok) return { ok: false, error: `GitHub ${res.status} listing assignees for ${repo}`, assignees: [] };
+    const page = (await res.json()) as { login?: string }[];
+    for (const u of page) if (u.login) logins.push(u.login);
+    url = nextLink(res);
+  }
+
+  // Display names off the identity map, matched case-insensitively (GitHub
+  // logins are case-preserving but not case-sensitive, and the map was written
+  // by hand). A login with no mapping shows as the login itself.
+  const people = await all<PersonRow>(env.DB, `SELECT login, person FROM people`);
+  const byLogin = new Map(people.map((p) => [p.login.toLowerCase(), p.person]));
+  const assignees = logins.map((login) => ({ login, person: byLogin.get(login.toLowerCase()) ?? login }));
+  assignees.sort((a, b) => a.person.localeCompare(b.person));
+  return { ok: true, assignees };
+}
+
+/** The roster with the identity map as a fallback, so a GitHub outage degrades
+ *  the picker instead of breaking the form. Never throws. */
+export async function assigneeRoster(
+  env: Env,
+  opts?: { fetchImpl?: typeof fetch }
+): Promise<{ assignees: Assignee[]; degraded: boolean; error?: string }> {
+  let res: AssigneeList;
+  try {
+    res = await listAssignees(env, opts);
+  } catch (e) {
+    res = { ok: false, error: e instanceof Error ? e.message : String(e), assignees: [] };
+  }
+  if (res.ok) return { assignees: res.assignees, degraded: false };
+  try {
+    const people = await list_people(env.DB);
+    return { assignees: people, degraded: true, error: res.error };
+  } catch {
+    return { assignees: [], degraded: true, error: res.error };
+  }
 }

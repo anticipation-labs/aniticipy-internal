@@ -238,9 +238,13 @@ export function mapIdentity(login: string, person: string): Promise<{ ok: true; 
 // createTask opens a new issue already assigned; assignTask puts an existing
 // open issue on someone's To-do. Both capture the assignment locally on the way
 // back, so My Work reflects it without waiting for the webhook.
+// The roster is who GITHUB says can be assigned on the repo (display names
+// filled in from Canopy's identity map), not Canopy's own people table — see
+// the /assignees route. `degraded` means GitHub was unreachable and the server
+// fell back to the identity map.
 export interface PersonEntry { login: string; person: string }
-export function listPeople(): Promise<PersonEntry[]> {
-  return getJson<{ people: PersonEntry[] }>("/people").then((r) => r.people);
+export function listAssignees(): Promise<PersonEntry[]> {
+  return getJson<{ assignees: PersonEntry[]; degraded: boolean }>("/assignees").then((r) => r.assignees);
 }
 
 export type TaskPriority = "P0" | "P1" | "P2" | "P3";

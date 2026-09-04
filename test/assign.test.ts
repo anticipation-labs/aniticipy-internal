@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { env } from "cloudflare:test";
 import { all, first } from "../src/db";
-import { createTask, assignTask } from "../src/tools/assign";
+import { createTask, assignTask, listAssignees, assigneeRoster } from "../src/tools/assign";
 import { getMyWork } from "../src/tools/mywork";
 import { app } from "../src/routes";
 import { createSession } from "../src/auth/session";
@@ -260,20 +260,92 @@ describe("POST /tasks + /tasks/:number/assign (session-gated)", () => {
   });
 });
 
-describe("GET /people", () => {
-  it("returns the identity roster, person-sorted, for the assignee picker", async () => {
-    // `people` is re-seeded from scripts/seed/reset.mjs before each test, so this
-    // asserts the added rows are present and the ordering holds — not an exact
-    // roster, which would break every time the seed changes.
-    await env.DB.prepare(`INSERT OR REPLACE INTO people (login, person) VALUES (?, ?)`).bind("zz-new", "Zoe").run();
-    const res = await app.request("/people", { headers: { cookie: await cookieFor("member") } }, env);
-    expect(res.status).toBe(200);
-    const { people } = (await res.json()) as { people: { login: string; person: string }[] };
-    expect(people).toContainEqual({ login: "zz-new", person: "Zoe" });
-    expect(people.map((p) => p.person)).toEqual([...people.map((p) => p.person)].sort());
+describe("assignee roster — sourced from GitHub, not the identity map", () => {
+  // A repo whose assignable users are NOT the identity map: "gone" is mapped but
+  // has left (GitHub would refuse to assign them), "newbie" has joined but was
+  // never mapped. Using `people` as the roster got BOTH of these wrong.
+  function stubAssignees(logins: string[], status = 200) {
+    const calls: string[] = [];
+    const impl = (async (url: string | URL | Request) => {
+      calls.push(String(url));
+      return new Response(JSON.stringify(logins.map((login) => ({ login }))), {
+        status, headers: { "content-type": "application/json" },
+      });
+    }) as unknown as typeof fetch;
+    return { impl, calls };
+  }
+
+  it("lists who GitHub says can be assigned, not who is in `people`", async () => {
+    await env.DB.prepare(`INSERT OR REPLACE INTO people (login, person) VALUES (?, ?)`).bind("gone", "Departed Dan").run();
+    const { impl, calls } = stubAssignees(["jose", "newbie"]);
+    const res = await listAssignees(envWith(), { fetchImpl: impl });
+
+    expect(res.ok).toBe(true);
+    expect(calls[0]).toBe("https://api.github.com/repos/o/r/assignees?per_page=100");
+    expect(res.assignees.map((a) => a.login).sort()).toEqual(["jose", "newbie"]);
+    // the mapped-but-departed person is NOT offered
+    expect(res.assignees.some((a) => a.login === "gone")).toBe(false);
   });
 
+  it("fills display names from the identity map and falls back to the login", async () => {
+    await env.DB.prepare(`INSERT OR REPLACE INTO people (login, person) VALUES (?, ?)`).bind("jose", "Jose").run();
+    const { impl } = stubAssignees(["jose", "newbie"]);
+    const res = await listAssignees(envWith(), { fetchImpl: impl });
+    expect(res.assignees).toEqual([
+      { login: "jose", person: "Jose" },      // mapped → display name
+      { login: "newbie", person: "newbie" },  // unmapped → the login itself
+    ]);
+  });
+
+  it("matches the identity map case-insensitively", async () => {
+    await env.DB.prepare(`INSERT OR REPLACE INTO people (login, person) VALUES (?, ?)`).bind("Jose-Gael-Cruz-Lopez", "Jose").run();
+    const { impl } = stubAssignees(["jose-gael-cruz-lopez"]);
+    const res = await listAssignees(envWith(), { fetchImpl: impl });
+    expect(res.assignees[0].person).toBe("Jose");
+  });
+
+  it("reports failure rather than an empty roster when GitHub rejects the call", async () => {
+    const { impl } = stubAssignees([], 403);
+    const res = await listAssignees(envWith(), { fetchImpl: impl });
+    expect(res.ok).toBe(false);
+    expect(res.error).toContain("GitHub 403");
+  });
+
+  it("assigneeRoster degrades to the identity map instead of breaking the form", async () => {
+    const { impl } = stubAssignees([], 500);
+    const res = await assigneeRoster(envWith(), { fetchImpl: impl });
+    expect(res.degraded).toBe(true);
+    expect(res.error).toContain("GitHub 500");
+    // the seeded identity map stands in, so the picker still shows chips
+    expect(res.assignees.length).toBeGreaterThan(0);
+  });
+
+  it("degrades the same way when the service token is unset", async () => {
+    const res = await assigneeRoster(envWith({ GITHUB_SERVICE_TOKEN: undefined }));
+    expect(res.degraded).toBe(true);
+    expect(res.error).toBe("service token or repo not configured");
+  });
+});
+
+describe("GET /assignees", () => {
   it("401s without a session", async () => {
-    expect((await app.request("/people", {}, env)).status).toBe(401);
+    expect((await app.request("/assignees", {}, env)).status).toBe(401);
+  });
+
+  it("returns the degraded identity-map roster when GitHub is unreachable", async () => {
+    // GITHUB_SERVICE_TOKEN is never set in tests, so this exercises the fallback
+    // through the real route rather than the tool.
+    const res = await app.request("/assignees", { headers: { cookie: await cookieFor("member") } }, env);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { assignees: { login: string; person: string }[]; degraded: boolean };
+    expect(body.degraded).toBe(true);
+    expect(body.assignees.length).toBeGreaterThan(0);
+  });
+
+  it("no longer exposes the raw identity map at /people", async () => {
+    // The picker must not read `people` as a roster — the route is gone so a
+    // future caller cannot reintroduce the bug by reaching for it.
+    const res = await app.request("/people", { headers: { cookie: await cookieFor("member") } }, env);
+    expect(res.status).toBe(404);
   });
 });
