@@ -13,7 +13,7 @@ describe("the /internal domain route", () => {
     const page = await SELF.fetch("https://www.anticipy.ai/internal/");
     expect(page.status).toBe(200);
     const html = await page.text();
-    expect(html).toContain("<title>Canopy</title>");
+    expect(html).toContain("<title>Anticipy Internal</title>");
 
     const script = html.match(/src="(\.\/assets\/[^"]+\.js)"/)?.[1];
     expect(script).toBeTruthy();

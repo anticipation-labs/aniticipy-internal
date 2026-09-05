@@ -275,7 +275,7 @@ function loginCard(): string {
     <div style="display:flex;flex-direction:column;align-items:center;gap:0;margin-bottom:40px">
       <div style="display:flex;align-items:center;gap:11px">
         ${logo(30)}
-        <span style="font-size:25px;font-weight:600;letter-spacing:-0.02em">Canopy</span>
+        <span style="font-size:25px;font-weight:600;letter-spacing:-0.02em">Anticipy Internal</span>
       </div>
     </div>
     <div style="border:1px solid var(--border);border-radius:14px;padding:30px;display:flex;flex-direction:column;gap:20px;background:var(--bg)">
@@ -297,7 +297,7 @@ function nonmemberCard(): string {
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       </div>
       <div>
-        <div style="font-size:18px;font-weight:600;letter-spacing:-0.01em">Canopy is limited to the Anticipation Labs team.</div>
+        <div style="font-size:18px;font-weight:600;letter-spacing:-0.01em">Anticipy Internal is limited to the Anticipation Labs team.</div>
         <div style="font-size:13.5px;color:var(--fg-55);margin-top:8px;line-height:1.55">Your GitHub account isn't a member of the <span style="font-family:var(--mono);font-size:12.5px">${esc(ORG)}</span> organization, so there's nothing here for you yet.</div>
       </div>
       <div style="display:flex;align-items:center;gap:10px;padding:9px 14px 9px 9px;border:1px solid var(--border);border-radius:999px">
@@ -313,7 +313,7 @@ function verifyingCard(): string {
   return `<div style="display:flex;flex-direction:column;align-items:center;gap:22px">
     <div style="display:flex;align-items:center;gap:11px;opacity:.95">
       ${logo(28)}
-      <span style="font-size:23px;font-weight:600;letter-spacing:-0.02em">Canopy</span>
+      <span style="font-size:23px;font-weight:600;letter-spacing:-0.02em">Anticipy Internal</span>
     </div>
     <div style="display:flex;align-items:center;gap:11px;color:var(--fg-55);font-size:13px">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.4" style="animation:cnpy-spin .8s linear infinite"><path d="M12 3a9 9 0 1 0 9 9" stroke-linecap="round"></path></svg>
@@ -351,7 +351,7 @@ function sidebar(s: AppState): string {
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 14px 14px 16px;min-height:58px">
       <div style="display:flex;align-items:center;gap:10px;overflow:hidden">
         ${logo(24)}
-        ${expanded ? `<span style="font-size:18px;font-weight:600;letter-spacing:-0.02em;white-space:nowrap">Canopy</span>` : ""}
+        ${expanded ? `<span style="font-size:18px;font-weight:600;letter-spacing:-0.02em;white-space:nowrap">Anticipy Internal</span>` : ""}
       </div>
       ${expanded ? `<button data-act="toggleCollapse" title="Collapse sidebar" class="cnpy-iconbtn" style="flex:none;width:28px;height:28px;border-radius:7px;display:grid;place-items:center;color:var(--fg-40)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M9 4v16"></path><path d="M14.5 9.5 12 12l2.5 2.5"></path></svg>
@@ -996,14 +996,14 @@ function guideView(s: AppState): string {
   const gPre = (body: string) => `<pre style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;overflow-x:auto;margin:12px 0 0"><code style="font-family:var(--mono);font-size:12.5px;line-height:1.6;color:var(--fg-70)">${body}</code></pre>`;
   return `<div class="cnpy-scroll" style="max-width:860px;margin:0 auto;padding:52px 40px 120px">
     <h1 style="font-size:30px;font-weight:650;letter-spacing:-0.025em;margin:0 0 14px">Get Started</h1>
-    <p style="font-size:16px;line-height:1.8;color:var(--fg-70);margin:0 0 14px">Welcome to Canopy, your team's shared memory. It holds the team's docs, decisions, roadmap, and a running feed of everything people and their coding agents have done, and it keeps that memory trustworthy with one golden rule: ${gStrong("agents only ever stage changes; a human confirms the ones that matter")}. Nothing an agent writes goes live until someone approves it, so the store stays reliable no matter how many agents are writing to it.</p>
+    <p style="font-size:16px;line-height:1.8;color:var(--fg-70);margin:0 0 14px">Welcome to Anticipy Internal, your team's shared memory. It holds the team's docs, decisions, roadmap, and a running feed of everything people and their coding agents have done, and it keeps that memory trustworthy with one golden rule: ${gStrong("agents only ever stage changes; a human confirms the ones that matter")}. Nothing an agent writes goes live until someone approves it, so the store stays reliable no matter how many agents are writing to it.</p>
     <p style="${gP}">This is a tour of the app, following the sidebar top to bottom (${gStrong("Workspace")}, ${gStrong("Knowledge")}, and ${gStrong("Triage")}), then how to connect your own coding agent.</p>
 
     <div style="${gEyebrow}">Workspace</div>
     <h2 style="${gH2}">Your day-to-day</h2>
 
     <h3 style="${gH3}">My Work</h3>
-    <p style="${gP}">Canopy opens on ${gStrong("My Work")}, your personal dashboard. It's a read-only projection built entirely from captured GitHub events (no live API calls), so it loads instantly. Two lists: ${gStrong("To-Do")}, your open assigned issues (each with a one-line summary, its milestone, and a suggested next step), and ${gStrong("Previous activity")}, your recently merged and closed PRs, each summarized once at capture time. ${gStrong("Sync GitHub")} pulls the latest events.</p>
+    <p style="${gP}">Anticipy Internal opens on ${gStrong("My Work")}, your personal dashboard. It's a read-only projection built entirely from captured GitHub events (no live API calls), so it loads instantly. Two lists: ${gStrong("To-Do")}, your open assigned issues (each with a one-line summary, its milestone, and a suggested next step), and ${gStrong("Previous activity")}, your recently merged and closed PRs, each summarized once at capture time. ${gStrong("Sync GitHub")} pulls the latest events.</p>
     ${gFig("mywork", `${gEm("My Work")}: your open issues with a summary, milestone, and next step, plus a Sync button to pull the latest activity.`)}
 
     <h3 style="${gH3}">Roadmap</h3>
@@ -1050,7 +1050,7 @@ function guideView(s: AppState): string {
 /plugin install canopy@canopy`)}
     <p style="${gP};margin-top:12px">The plugin reads your token from an environment variable, so export it in the shell that launches your agent (add it to your shell profile to make it stick), then restart:</p>
     ${gPre(`export CANOPY_MCP_TOKEN=canopy_mcp_…`)}
-    <p style="${gP};margin-top:14px">${gStrong("Prefer to wire it by hand")}, or running your own Canopy? Skip the plugin and drop a <code style="font-family:var(--mono);font-size:13px">.mcp.json</code> in your project with the token as a bearer header, then restart your agent:</p>
+    <p style="${gP};margin-top:14px">${gStrong("Prefer to wire it by hand")}, or running your own Anticipy Internal instance? Skip the plugin and drop a <code style="font-family:var(--mono);font-size:13px">.mcp.json</code> in your project with the token as a bearer header, then restart your agent:</p>
     ${gPre(`{
   "mcpServers": {
     "canopy": {
@@ -1063,12 +1063,12 @@ function guideView(s: AppState): string {
     <p style="${gP};margin-top:14px">Once connected, your agent can read everything with ${gStrong("query")} (ranked, authority-flagged search) and ${gStrong("get_doc")}, and add new context with ${gStrong("append_feed")} and ${gStrong("propose_doc_update")}. Exactly like the UI, those writes are ${gStrong("staged")}: they land in Review for you to confirm, never straight into the live store. The gate de-duplicates no-op writes and tags each doc change as new, edit, or rewrite, so re-running a session never piles up noise.</p>
 
     <div style="${gEyebrow}">The living loop</div>
-    <h2 style="${gH2}">How Canopy stays current</h2>
-    <p style="${gP}">The thing that keeps Canopy alive isn't any one screen; it's a loop your agent runs every session: ${gStrong("orient → work → record")}. Three Claude Code skills (under <code style="font-family:var(--mono);font-size:13px">.claude/skills/</code>) drive it, and they're the real heart of the system.</p>
+    <h2 style="${gH2}">How Anticipy Internal stays current</h2>
+    <p style="${gP}">The thing that keeps Anticipy Internal alive isn't any one screen; it's a loop your agent runs every session: ${gStrong("orient → work → record")}. Three Claude Code skills (under <code style="font-family:var(--mono);font-size:13px">.claude/skills/</code>) drive it, and they're the real heart of the system.</p>
     <ol style="font-size:14.5px;line-height:1.8;color:var(--fg-70);margin:10px 0 0;padding-left:22px">
       <li>${gStrong("Orient: load-context.")} Fires on its own before your agent works an area it has touched before, and always before it proposes a doc change. It calls the read-only ${gStrong("query")} tool, reads the assembled authoritative bodies, and respects each result's authority flag, so the agent builds on what the team already knows instead of re-deriving it. It never writes.</li>
       <li>${gStrong("Work.")} The agent does the task, now grounded in real context rather than guesses.</li>
-      <li>${gStrong("Record: record-session.")} You ask for it explicitly at the end ("record this session"; it never fires on its own). It observes what actually shipped from <code style="font-family:var(--mono);font-size:13px">git</code>/<code style="font-family:var(--mono);font-size:13px">gh</code>, reads the docs it touched back from Canopy so it writes a true delta from a known base, and stages one reconciled batch through the ${gStrong("record_session")} MCP tool, over the same bearer connection you set up above, with no extra auth. The gate drops no-ops, tags each doc change new/edit/rewrite, and routes anything low-confidence or out-of-vocab to Maintenance.</li>
+      <li>${gStrong("Record: record-session.")} You ask for it explicitly at the end ("record this session"; it never fires on its own). It observes what actually shipped from <code style="font-family:var(--mono);font-size:13px">git</code>/<code style="font-family:var(--mono);font-size:13px">gh</code>, reads the docs it touched back from Anticipy Internal so it writes a true delta from a known base, and stages one reconciled batch through the ${gStrong("record_session")} MCP tool, over the same bearer connection you set up above, with no extra auth. The gate drops no-ops, tags each doc change new/edit/rewrite, and routes anything low-confidence or out-of-vocab to Maintenance.</li>
     </ol>
     <p style="${gP};margin-top:12px">Then you ${gStrong("confirm")} in Review. That's the whole point: agents feed the store continuously, a human curates what matters, and because nothing goes live unreviewed, and every session writes back what it learned, the context stays trustworthy and current instead of going stale. This loop is the difference between a wiki that rots and a memory that grows.</p>
     <p style="${gP}">${gStrong("canopy")} is the umbrella skill that maps all of this and carries the full ${gStrong("query")} reference; ${gStrong("load-context")} and ${gStrong("record-session")} are the two halves it composes, kept separate because one must fire on its own and the other must never. The Canopy plugin (above) ships all three, so installing it is all it takes to get them in any project, with no copying by hand.</p>
@@ -1154,7 +1154,7 @@ function settingsView(s: AppState): string {
       </div>
       ${reveal}
       <div style="border:1px solid var(--border);border-radius:13px;overflow:hidden">${tokenListBody}</div>
-      <div style="font-size:11.5px;color:var(--fg-40);margin-top:10px">Tokens authorize agents to write to Canopy over MCP. Revoking takes effect immediately.</div>
+      <div style="font-size:11.5px;color:var(--fg-40);margin-top:10px">Tokens authorize agents to write to Anticipy Internal over MCP. Revoking takes effect immediately.</div>
     </section>
 
     <section style="margin-top:34px">

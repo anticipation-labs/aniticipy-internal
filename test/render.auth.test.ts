@@ -9,8 +9,10 @@ import { initialState, render } from "../web/src/render";
 describe("authentication screen branding", () => {
   it("uses Anticipy branding on the login screen", () => {
     const html = render(initialState());
+    expect(html).toContain("Anticipy Internal");
     expect(html).toContain("Anticipy team workspace");
     expect(html).toContain("shared source of truth for the Anticipy team");
+    expect(html).not.toContain(">Canopy<");
     expect(html).not.toContain("Sapling team");
   });
 
@@ -18,7 +20,9 @@ describe("authentication screen branding", () => {
     const state = initialState();
     state.authStep = "verifying";
     const html = render(state);
+    expect(html).toContain("Anticipy Internal");
     expect(html).toContain("Verifying Anticipy membership");
+    expect(html).not.toContain(">Canopy<");
     expect(html).not.toContain("Verifying Sapling membership");
   });
 });
