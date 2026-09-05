@@ -18,4 +18,10 @@ describe("callbackUrl", () => {
     expect(callbackUrl("http://localhost:8787/auth/login")).toBe("http://localhost:8787/auth/callback");
     expect(callbackUrl("http://127.0.0.1:8787/auth/login")).toBe("http://127.0.0.1:8787/auth/callback");
   });
+
+  it("includes the public /internal base path", () => {
+    expect(callbackUrl("https://www.anticipy.ai/auth/login", "/internal")).toBe(
+      "https://www.anticipy.ai/internal/auth/callback",
+    );
+  });
 });

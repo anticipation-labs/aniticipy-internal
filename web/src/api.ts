@@ -8,6 +8,7 @@ import type {
   FeedRow, DocRow, DocVersionRow, MilestoneRow, AdrRow, NeedsTriageRow, MilestoneProposalRow, EventRow,
 } from "@shared/rows";
 import type { DashboardData } from "@shared/dashboard";
+import { appPath } from "./paths";
 
 export class Unauthorized extends Error {
   constructor() { super("unauthorized"); }
@@ -19,14 +20,15 @@ export class ApiError extends Error {
 export class NotFound extends Error {}
 
 async function getJson<T>(path: string): Promise<T> {
-  const res = await fetch(path, { credentials: "same-origin", headers: { accept: "application/json" } });
+  const url = appPath(path);
+  const res = await fetch(url, { credentials: "same-origin", headers: { accept: "application/json" } });
   if (res.status === 401) throw new Unauthorized();
   if (!res.ok) throw new ApiError(res.status, `${path} -> ${res.status}`);
   return res.json() as Promise<T>;
 }
 
 async function postJson<T>(path: string, body: unknown = {}): Promise<T> {
-  const res = await fetch(path, {
+  const res = await fetch(appPath(path), {
     method: "POST",
     credentials: "same-origin",
     headers: { "content-type": "application/json", accept: "application/json" },
@@ -274,3 +276,4 @@ export function mintMcpToken(): Promise<{ token: string }> {
 // Re-export the row types the UI renders, so screens import shapes from one place.
 export type { FeedRow, DocRow, DocVersionRow, MilestoneRow, AdrRow, NeedsTriageRow, MilestoneProposalRow };
 export type { DashboardData };
+export { appPath } from "./paths";

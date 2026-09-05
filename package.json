@@ -9,7 +9,7 @@
     "db:migrate:remote": "wrangler d1 migrations apply canopy --remote",
     "deploy": "npm run build:web && wrangler deploy",
     "dev": "npm run build:web && wrangler dev",
-    "pretest": "mkdir -p web/dist",
+    "pretest": "npm run build:web",
     "seed": "node scripts/seed-dev.mjs",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.worker.json && tsc -p tsconfig.web.json"

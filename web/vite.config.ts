@@ -3,6 +3,7 @@ import path from "node:path";
 
 export default defineConfig({
   root: __dirname,
+  base: "./",
   build: {
     outDir: path.join(__dirname, "dist"),
     emptyOutDir: true,

@@ -2,7 +2,8 @@
 
 Shared context store. One Cloudflare Worker on one origin serves the HTTP API,
 a stateless MCP endpoint at `/mcp`, and a full single-page app (TypeScript + Vite,
-served via the ASSETS binding). Live at `canopy.saplinglearn.com`.
+served via the ASSETS binding). Live at `https://www.anticipy.ai/internal/`;
+`canopy.omar-114.workers.dev` remains available as the direct Worker origin.
 
 - `shared/` — Zod contract, vocabulary, D1 row types (imported by `src/` and `web/`)
 - `src/` — Worker: `index.ts` (router), `routes.ts` (Hono HTTP), `mcp.ts` (MCP tools),
@@ -87,9 +88,15 @@ switch, and the six-hourly `[triggers]` cron that refreshes the milestone progre
 
 **Every deploy**
 
-```
-npm run deploy      # builds web/dist, then wrangler deploy
-```
+Cloudflare Builds deploys `main` from `anticipation-labs/aniticipy-internal`.
+It runs `npm run build:web` and then `npx wrangler deploy`. `npm run deploy`
+is the manual fallback; it builds `web/dist` before invoking Wrangler.
+
+The two narrowly scoped routes in `wrangler.toml` attach only `/internal` and
+`/internal/*` on `www.anticipy.ai`; the rest of the main site stays on its own
+Worker. Canopy strips the public base path internally, keeps its session and
+OAuth cookies scoped to `/internal`, and continues to work at the root of its
+`workers.dev` origin.
 
 `npm run dev` runs the same thing locally against Miniflare with a local SQLite, so nothing
 touches production D1 until you deploy.
@@ -104,8 +111,8 @@ Auth gates all data routes (session cookie) and `/mcp` (per-person bearer token)
 only active members of the GitHub org named by the `GITHUB_ORG` var (default `anticipation-labs`;
 see `DEFAULT_ORG` in `src/auth/github.ts`). Set these Wrangler secrets:
 
-- `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` — a GitHub OAuth App whose callback is
-  `https://<host>/auth/callback`.
+- `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` — the organization-owned GitHub
+  OAuth App whose callback is `https://www.anticipy.ai/internal/auth/callback`.
 - `COOKIE_SECRET` — a long random string used to sign the session cookie.
 
 Production: `wrangler secret put GITHUB_CLIENT_ID` (and the others).
@@ -134,7 +141,8 @@ export CANOPY_MCP_TOKEN=canopy_mcp_...   # your token, minted above — per pers
 That auto-wires the `canopy` MCP server (`query` / `get_doc` / `record_session` …) and loads the
 `canopy`, `load-context`, and `record-session` skills — no manual `claude mcp add`, no copying skill
 folders. (The single-server manual path still works:
-`claude mcp add --transport http canopy https://canopy.saplinglearn.com/mcp --header "Authorization: Bearer canopy_mcp_..."`.)
+`claude mcp add --transport http canopy https://www.anticipy.ai/internal/mcp --header "Authorization: Bearer canopy_mcp_..."`.
+The direct `https://canopy.omar-114.workers.dev/mcp` endpoint remains valid.)
 
 > **Maintainers:** the plugin is at `plugins/canopy/`; the marketplace manifest at
 > `.claude-plugin/marketplace.json`. Validate either with `claude plugin validate <path>`. The real

@@ -14,6 +14,7 @@ import {
   listAssignees, createTask, assignTask,
   Unauthorized, NotFound, ApiError,
 } from "./api";
+import { appPath } from "./paths";
 import { decodeReviewId } from "./triage-map";
 
 const root = document.getElementById("app");
@@ -571,12 +572,12 @@ function dispatch(act: string, arg: string | null, value: string | null): void {
   switch (act) {
     // auth state navigation (how the screens become reachable)
     case "signIn":
-      window.location.href = "/auth/login";
+      window.location.href = appPath("/auth/login");
       return;
     case "previewNonMember": state.authStep = "nonmember"; break;
     case "backToLogin":
       state.authStep = "login";
-      history.replaceState({}, "", "/");
+      history.replaceState({}, "", appPath("/"));
       break;
     case "signOut":
       logout()

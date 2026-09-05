@@ -44,6 +44,11 @@ Triage. That staging-plus-confirmation loop is what keeps the store trustworthy 
 - `npm run db:create` / `db:migrate:local` / `db:migrate:remote` — D1 provisioning + migrations.
 - Run one test file: `npx vitest run test/<file>.test.ts`.
 
+Production is served at `https://www.anticipy.ai/internal/`. The exact
+`/internal` and `/internal/*` Worker routes live in `wrangler.toml`; the Worker
+strips that base path before asset/API routing, while its direct `workers.dev`
+origin continues to serve Canopy at `/`.
+
 ## Layout
 
 - `shared/` — the ONLY shared layer (imported via the `@shared` alias by `src/` and `web/`):

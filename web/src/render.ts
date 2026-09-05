@@ -6,6 +6,7 @@
 import type { Me, StagedProposal, IdentityTask, PersonEntry, TaskPriority } from "./api";
 import type { FeedRow, DocRow, DocVersionRow, AdrRow, NeedsTriageRow } from "@shared/rows";
 import type { QueryResult, QueryPrimary, QueryPointer, Authority, MilestoneWithProgress, PlanView } from "./api";
+import { appPath } from "./paths";
 import type { DashboardData, MyWorkPr, MyWorkTodo } from "@shared/dashboard";
 import { TAGS } from "@shared/vocabulary";
 import { renderMarkdown } from "./markdown";
@@ -989,7 +990,7 @@ function guideView(s: AppState): string {
   const gStrong = (t: string) => `<strong style="color:var(--fg);font-weight:600">${t}</strong>`;
   const gEm = (t: string) => `<strong style="color:var(--fg-55)">${t}</strong>`;
   const gFig = (name: string, cap: string) => `<figure style="margin:18px 0 4px">
-      <img src="/guide/${name}-${th}.png" alt="" style="display:block;width:100%;border:1px solid var(--border);border-radius:12px" />
+      <img src="${appPath(`/guide/${name}-${th}.png`)}" alt="" style="display:block;width:100%;border:1px solid var(--border);border-radius:12px" />
       <figcaption style="font-size:12px;color:var(--fg-40);margin-top:8px">${cap}</figcaption>
     </figure>`;
   const gPre = (body: string) => `<pre style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;overflow-x:auto;margin:12px 0 0"><code style="font-family:var(--mono);font-size:12.5px;line-height:1.6;color:var(--fg-70)">${body}</code></pre>`;

@@ -28,9 +28,9 @@ export async function deleteSession(db: DB, id: string): Promise<void> {
   await run(db, `DELETE FROM sessions WHERE id = ?`, id);
 }
 
-export async function setSessionCookie(c: Context, id: string, secret: string): Promise<void> {
+export async function setSessionCookie(c: Context, id: string, secret: string, path = "/"): Promise<void> {
   setCookie(c, SESSION_COOKIE, await hmacSeal(id, secret), {
-    httpOnly: true, secure: true, sameSite: "Lax", path: "/", maxAge: SESSION_TTL_MS / 1000,
+    httpOnly: true, secure: true, sameSite: "Lax", path, maxAge: SESSION_TTL_MS / 1000,
   });
 }
 
@@ -39,6 +39,6 @@ export async function readSessionCookie(c: Context, secret: string): Promise<str
   return sealed ? hmacUnseal(sealed, secret) : null;
 }
 
-export function clearSessionCookie(c: Context): void {
-  deleteCookie(c, SESSION_COOKIE, { path: "/" });
+export function clearSessionCookie(c: Context, path = "/"): void {
+  deleteCookie(c, SESSION_COOKIE, { path });
 }

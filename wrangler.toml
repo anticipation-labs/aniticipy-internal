@@ -2,6 +2,10 @@ name = "canopy"
 main = "src/index.ts"
 compatibility_date = "2025-11-01"
 compatibility_flags = ["nodejs_compat"]
+routes = [
+  { pattern = "www.anticipy.ai/internal", zone_name = "anticipy.ai" },
+  { pattern = "www.anticipy.ai/internal/*", zone_name = "anticipy.ai" },
+]
 
 # Static Assets: served before the Worker fetch handler. Matched files (e.g. "/")
 # are returned directly; unmatched paths (/ingest, /feed, /mcp) fall through to src/index.ts.
