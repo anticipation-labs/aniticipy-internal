@@ -3,7 +3,7 @@
 Shared context store. One Cloudflare Worker on one origin serves the HTTP API,
 a stateless MCP endpoint at `/mcp`, and a full single-page app (TypeScript + Vite,
 served via the ASSETS binding). Live at `https://www.anticipy.ai/internal/`;
-`canopy.omar-114.workers.dev` remains available as the direct Worker origin.
+`anticipy-internal.omar-114.workers.dev` remains available as the direct Worker origin.
 
 - `shared/` — Zod contract, vocabulary, D1 row types (imported by `src/` and `web/`)
 - `src/` — Worker: `index.ts` (router), `routes.ts` (Hono HTTP), `mcp.ts` (MCP tools),
@@ -142,7 +142,7 @@ That auto-wires the `canopy` MCP server (`query` / `get_doc` / `record_session` 
 `canopy`, `load-context`, and `record-session` skills — no manual `claude mcp add`, no copying skill
 folders. (The single-server manual path still works:
 `claude mcp add --transport http canopy https://www.anticipy.ai/internal/mcp --header "Authorization: Bearer canopy_mcp_..."`.
-The direct `https://canopy.omar-114.workers.dev/mcp` endpoint remains valid.)
+The direct `https://anticipy-internal.omar-114.workers.dev/mcp` endpoint remains valid.)
 
 > **Maintainers:** the plugin is at `plugins/canopy/`; the marketplace manifest at
 > `.claude-plugin/marketplace.json`. Validate either with `claude plugin validate <path>`. The real

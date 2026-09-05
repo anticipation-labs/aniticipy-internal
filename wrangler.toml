@@ -1,4 +1,4 @@
-name = "canopy"
+name = "anticipy-internal"
 main = "src/index.ts"
 compatibility_date = "2025-11-01"
 compatibility_flags = ["nodejs_compat"]
