@@ -9,9 +9,9 @@ describe("0012 stores", () => {
     const ins = (key: string) =>
       run(env.DB, `INSERT OR IGNORE INTO events (semantic_key, event_type, ref_number, subject_login, raw, provenance, occurred_at, recorded_at, recorded_by)
                    VALUES (?, 'pr_merged', 42, 'AndresL230', '{}', 'webhook', ?, ?, 'github-webhook')`, key, now, now);
-    const first = await ins("gh:pr:42:merged");
+    const first = await ins("gh:anticipation-labs/Anticipy:pr:42:merged");
     expect(first.meta.changes).toBe(1);
-    const dup = await ins("gh:pr:42:merged");
+    const dup = await ins("gh:anticipation-labs/Anticipy:pr:42:merged");
     expect(dup.meta.changes).toBe(0);
     expect((await all<EventRow>(env.DB, `SELECT * FROM events`)).length).toBe(1);
   });

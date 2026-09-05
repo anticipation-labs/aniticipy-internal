@@ -49,6 +49,7 @@ interface RawIssue {
 }
 
 interface IssueSnapshotRow {
+  repo: string;
   ref_number: number;
   raw: string;
   summary: string | null;
@@ -82,6 +83,7 @@ export async function getMyWork(db: DB, login: string): Promise<MyWork> {
     const previousActivity: MyWorkPr[] = prRows.map((row) => {
       const parsed = JSON.parse(row.raw) as RawPr;
       return {
+        repo: row.repo,
         number: parsed.pr.number,
         title: parsed.pr.title,
         url: parsed.pr.html_url,
@@ -99,14 +101,18 @@ export async function getMyWork(db: DB, login: string): Promise<MyWork> {
     // known set of numbers — every issue ever captured is a todo candidate).
     const issueRows = await all<IssueSnapshotRow>(
       db,
-      `SELECT e.ref_number, e.raw, s.summary AS summary, s.title AS s_title, s.next_step AS s_next_step
+      // PARTITION and JOIN both carry `repo`: two repos can each have an issue
+      // #40, and collapsing them would show one repo's snapshot under the
+      // other's summary (or hide it entirely).
+      `SELECT e.repo, e.ref_number, e.raw, s.summary AS summary, s.title AS s_title, s.next_step AS s_next_step
        FROM (
-         SELECT ref_number, raw, ROW_NUMBER() OVER (PARTITION BY ref_number ORDER BY occurred_at DESC, id DESC) rn
+         SELECT repo, ref_number, raw,
+                ROW_NUMBER() OVER (PARTITION BY repo, ref_number ORDER BY occurred_at DESC, id DESC) rn
          FROM events WHERE event_type = 'issue'
        ) e
-       LEFT JOIN issue_summaries s ON s.issue_number = e.ref_number
+       LEFT JOIN issue_summaries s ON s.issue_number = e.ref_number AND s.repo = e.repo
        WHERE e.rn = 1
-       ORDER BY e.ref_number ASC`
+       ORDER BY e.repo ASC, e.ref_number ASC`
     );
     const todo: MyWorkTodo[] = [];
     for (const row of issueRows) {
@@ -116,6 +122,7 @@ export async function getMyWork(db: DB, login: string): Promise<MyWork> {
       if (!issue.assignees.some((a) => a.login === login)) continue;
       const m = issue.milestone;
       todo.push({
+        repo: row.repo,
         number: issue.number,
         title: stripPriority(issue.title),
         priority: priorityOf(issue.title),

@@ -271,10 +271,10 @@ export async function ingestEvent(db: DB, event: CapturedEvent, recordedBy: stri
   if (ledger && (await ledgerLookup(db, ledger))) return { outcome: "unchanged" };
   const res = await run(
     db,
-    `INSERT OR IGNORE INTO events (semantic_key, event_type, ref_number, subject_login, raw, provenance, occurred_at, recorded_at, recorded_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT OR IGNORE INTO events (semantic_key, event_type, ref_number, subject_login, raw, provenance, repo, occurred_at, recorded_at, recorded_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     event.semantic_key, event.event_type, event.ref_number, event.subject_login,
-    event.raw, event.provenance, event.occurred_at ?? null, nowIso(), recordedBy
+    event.raw, event.provenance, event.repo, event.occurred_at ?? null, nowIso(), recordedBy
   );
   const written = (res.meta.changes ?? 0) > 0;
   // Identity intake AFTER the event write: an unmapped subject_login raises one

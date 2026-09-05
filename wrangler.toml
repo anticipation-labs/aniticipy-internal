@@ -22,6 +22,11 @@ GITHUB_ORG = "anticipation-labs"
 GITHUB_REPO = "anticipation-labs/Anticipy"
 # Comma-separated GitHub logins allowed to run admin actions (e.g. the server-side backfill).
 ADMIN_LOGINS = "Jose-Gael-Cruz-Lopez,omize10"
+# Repos whose webhook deliveries are CAPTURED (0020 multi-repo). A valid HMAC proves
+# a delivery came from GitHub, not that it came from a repo we meant to track, so
+# capture is allowlisted separately. GITHUB_REPO above stays the PRIMARY repo — the
+# one task assignment and milestone-progress recompute act on.
+GITHUB_REPOS = "anticipation-labs/Anticipy,anticipation-labs/aniticipy-internal"
 
 [observability]
 enabled = true

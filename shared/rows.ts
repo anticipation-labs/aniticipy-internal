@@ -143,6 +143,7 @@ export interface EventRow {
   subject_login: string;
   raw: string;             // JSON snapshot slice — the truth
   provenance: "webhook" | "backfill" | "canopy";
+  repo: string;              // "owner/name" the event came from (0020: multi-repo capture)
   occurred_at: string | null;
   recorded_at: string;
   recorded_by: string;
@@ -168,6 +169,7 @@ export interface PrSummaryRow {
 // semantic_key), since only the current summary matters across reassignments/
 // edits. Structured fields NULL on prose-era and excerpt-fallback rows.
 export interface IssueSummaryRow {
+  repo: string;                 // 0020: summaries are per (repo, issue_number)
   issue_number: number;
   summary: string;
   model: string | null;      // 'excerpt' = deterministic fallback

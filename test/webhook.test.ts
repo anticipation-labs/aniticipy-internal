@@ -62,7 +62,7 @@ describe("handleGithubWebhook — the third auth class", () => {
     expect(rows[0].event_type).toBe("pr_merged");
     expect(rows[0].subject_login).toBe("AndresL230");
     expect(rows[0].recorded_by).toBe("github-webhook"); // fixed writer principal
-    expect(rows[0].semantic_key).toBe("gh:pr:42:merged");
+    expect(rows[0].semantic_key).toBe("gh:SaplingLearn/canopy:pr:42:merged");
 
     // Redelivery of the SAME body: the UNIQUE semantic_key dedupes (INSERT OR IGNORE).
     const res2 = await postWebhook("pull_request", prMerged);
@@ -129,7 +129,7 @@ describe("handleGithubWebhook — the third auth class", () => {
 
   it("captures the PR base branch in raw (footer 'into <base>' source)", async () => {
     await postWebhook("pull_request", prMerged, env);
-    const rows = await all<EventRow>(env.DB, `SELECT * FROM events WHERE semantic_key = 'gh:pr:42:merged'`);
+    const rows = await all<EventRow>(env.DB, `SELECT * FROM events WHERE semantic_key = 'gh:SaplingLearn/canopy:pr:42:merged'`);
     const raw = JSON.parse(rows[0].raw) as { pr: { base: { ref: string } | null } };
     expect(raw.pr.base).toEqual({ ref: "main" });
   });
@@ -163,7 +163,7 @@ describe("eventsFromDelivery — pure derivation", () => {
     expect(e.event_type).toBe("issue");
     expect(e.subject_login).toBe("Jose-Gael-Cruz-Lopez");
     expect(e.ref_number).toBe(17);
-    expect(e.semantic_key).toBe("gh:issue:17:assigned:Jose-Gael-Cruz-Lopez:2026-07-01T17:05:00Z");
+    expect(e.semantic_key).toBe("gh:SaplingLearn/canopy:issue:17:assigned:Jose-Gael-Cruz-Lopez:2026-07-01T17:05:00Z");
     expect(e.occurred_at).toBe("2026-07-01T17:05:00Z");
     expect(e.provenance).toBe("webhook");
     const raw = JSON.parse(e.raw);
@@ -184,7 +184,7 @@ describe("eventsFromDelivery — pure derivation", () => {
     expect(events.length).toBe(1);
     const e = events[0];
     expect(e.event_type).toBe("pr_merged");
-    expect(e.semantic_key).toBe("gh:pr:42:merged");
+    expect(e.semantic_key).toBe("gh:SaplingLearn/canopy:pr:42:merged");
     expect(e.subject_login).toBe("AndresL230");
     expect(e.ref_number).toBe(42);
     expect(e.occurred_at).toBe("2026-07-01T18:24:00Z");

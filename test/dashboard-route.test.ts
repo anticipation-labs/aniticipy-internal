@@ -18,7 +18,7 @@ async function cookieFor(login: string): Promise<string> {
 
 function mergedPrEvent(number: number, login: string, occurredAt: string): CapturedEvent {
   return {
-    semantic_key: `gh:pr:${number}:merged`,
+    semantic_key: `gh:anticipation-labs/Anticipy:pr:${number}:merged`,
     event_type: "pr_merged",
     ref_number: number,
     subject_login: login,
@@ -36,13 +36,14 @@ function mergedPrEvent(number: number, login: string, occurredAt: string): Captu
       },
     }),
     provenance: "webhook",
+    repo: "anticipation-labs/Anticipy",
     occurred_at: occurredAt,
   };
 }
 
 function openIssueEvent(number: number, login: string, updatedAt: string): CapturedEvent {
   return {
-    semantic_key: `gh:issue:${number}:opened:${updatedAt}`,
+    semantic_key: `gh:anticipation-labs/Anticipy:issue:${number}:opened:${updatedAt}`,
     event_type: "issue",
     ref_number: number,
     subject_login: login,
@@ -61,6 +62,7 @@ function openIssueEvent(number: number, login: string, updatedAt: string): Captu
       },
     }),
     provenance: "webhook",
+    repo: "anticipation-labs/Anticipy",
     occurred_at: updatedAt,
   };
 }

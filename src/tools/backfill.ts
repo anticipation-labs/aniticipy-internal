@@ -103,9 +103,10 @@ export function nextLink(res: Response): string | null {
 // Synthesize the delivery bodies eventsFromDelivery reads — SAME raw slice shapes
 // as scripts/backfill-events.mjs (test/fixtures/*.json). PR list items carry no
 // `merged` boolean (that's single-PR-fetch only), so derive it from merged_at.
-function prClosedDelivery(pr: GhPrListItem) {
+function prClosedDelivery(pr: GhPrListItem, repo: string) {
   return {
     action: "closed",
+    repository: { full_name: repo },
     number: pr.number,
     pull_request: {
       number: pr.number,
@@ -129,7 +130,7 @@ function prClosedDelivery(pr: GhPrListItem) {
  *  which assignee the delivery is ABOUT — on a multi-assignee issue, assignees[0]
  *  is not necessarily the person just assigned, and the semantic key + subject
  *  are both derived from it. */
-export function issueDelivery(issue: GhIssueListItem, assigneeLogin?: string) {
+export function issueDelivery(issue: GhIssueListItem, repo: string, assigneeLogin?: string) {
   const pinned = assigneeLogin
     ? (issue.assignees ?? []).find((a) => a.login.toLowerCase() === assigneeLogin.toLowerCase()) ?? { login: assigneeLogin }
     : null;
@@ -137,6 +138,7 @@ export function issueDelivery(issue: GhIssueListItem, assigneeLogin?: string) {
   const action = assignee ? "assigned" : "opened";
   return {
     action,
+    repository: { full_name: repo },
     ...(assignee ? { assignee: { login: assignee.login } } : {}),
     issue: {
       number: issue.number,
@@ -258,7 +260,7 @@ export async function runBackfill(
   // rate-limit wall the long PR run can hit. PRs (Previous activity) take whatever
   // budget remains and finish across follow-up Sync batches (the frontend auto-loops).
   for (const issue of issueList) {
-    const payload = issueDelivery(issue);
+    const payload = issueDelivery(issue, repo);
     const isAssigned = payload.action === "assigned";
     if (isAssigned) issuesToSummarize++;
 
@@ -277,7 +279,8 @@ export async function runBackfill(
 
       const existing = await first<IssueSummaryRow>(
         env.DB,
-        `SELECT model, title FROM issue_summaries WHERE issue_number = ?`,
+        `SELECT model, title FROM issue_summaries WHERE repo = ? AND issue_number = ?`,
+        repo,
         issue.number
       );
       const alreadySummarized = existing !== null && existing.model !== "excerpt" && existing.title !== null;
@@ -298,6 +301,7 @@ export async function runBackfill(
       }
 
       const stored = await storeIssueSummary(env.DB, issueSummarizer, {
+        repo,
         issue_number: issue.number,
         title: issue.title,
         body: issue.body ?? "",
@@ -314,7 +318,7 @@ export async function runBackfill(
   }
 
   for (const pr of prList) {
-    const payload = prClosedDelivery(pr);
+    const payload = prClosedDelivery(pr, repo);
     for (const base of eventsFromDelivery("pull_request", payload)) {
       const ev = { ...base, provenance: "backfill" as const };
       const res = await ingestEvent(env.DB, ev, principalLogin);

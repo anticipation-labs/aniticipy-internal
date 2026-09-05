@@ -60,7 +60,8 @@ Triage. That staging-plus-confirmation loop is what keeps the store trustworthy 
   `0015_drop_user_token` [drops `users.github_token`], `0016_identity_tasks`, then
   `0017_issue_summaries` [assigned-issue summaries], `0018_structured_summaries` [structured summary
   columns], `0019_drop_pr_summary` [retires the legacy prose `pr_summaries.summary` — PR cards are
-  structured-only]).
+  structured-only], `0020_multi_repo` [`events.repo`, repo-qualified `semantic_key`,
+  `issue_summaries` re-keyed to `(repo, issue_number)`]).
 - `web/` — full TypeScript/Vite single-page app (My Work, Feed, Docs, Roadmap, Triage, Search,
   Settings, Get Started) served via the ASSETS binding; `web/src/markdown.ts` renders PR summaries and the
   roadmap narrative as styled HTML.
@@ -88,6 +89,16 @@ per-entry MCP write tools (`append_feed`, `propose_doc_update`), and the `/webho
 - **Low-confidence nuance**: low-conf on a NEW slug → triage; low-conf on an EXISTING slug → stage and
   flag (`low_confidence = 1`) for human scrutiny. Only low-conf new slugs go directly to triage.
 - Out-of-vocab tag/section or a milestone `status:'done'` → routed to `needs_triage` (nothing is guessed).
+- **Repo is part of the dedupe identity** (0020). `semantic_key` is repo-qualified —
+  `gh:owner/name:pr:40:merged` — because it previously named only a NUMBER: two repos' PR 40 collided on
+  the UNIQUE index and `INSERT OR IGNORE` dropped the second as "already seen". Silent loss, and certain
+  rather than unlikely once two active repos overlap in numbering. `eventsFromDelivery` reads
+  `repository.full_name` and **drops a payload that lacks one rather than defaulting** (a guess re-creates
+  the collision); backfill/assign synthesize the same field. `isCapturedRepo` allowlists capture via
+  `GITHUB_REPOS` (unset → `GITHUB_REPO` alone, fails closed): HMAC proves a delivery came from GitHub, not
+  that it came from a repo we meant to track. An off-list repo is acknowledged `200 {ignored:true}` — a
+  4xx would make GitHub retry and eventually disable the hook. `GITHUB_REPO` remains the PRIMARY repo, the
+  one `assign` writes to and the progress recompute reads.
 - **Events** carry no vocab/confidence — an event is external fact captured verbatim, deduped by a UNIQUE
   `semantic_key` (`gh:pr:42:merged`, `gh:issue:…`) written `INSERT OR IGNORE` (a redelivery/backfill
   overlap drops as `unchanged`). Its `subject_login` is a SECOND identity (who the event is about),

@@ -90,7 +90,7 @@ describe("createTask", () => {
     expect(events[0].subject_login).toBe("jose");
     expect(events[0].recorded_by).toBe("assigner");
     expect(events[0].provenance).toBe("canopy");
-    expect(events[0].semantic_key).toBe(`gh:issue:42:assigned:jose:${NOW}`);
+    expect(events[0].semantic_key).toBe(`gh:o/r:issue:42:assigned:jose:${NOW}`);
   });
 
   it("prefixes the GitHub title with the priority tag so My Work parses it back out", async () => {
@@ -187,7 +187,7 @@ describe("assignTask (existing issue)", () => {
 
     const events = await all<EventRow>(env.DB, `SELECT * FROM events`);
     expect(events[0].subject_login).toBe("jose");
-    expect(events[0].semantic_key).toBe(`gh:issue:42:assigned:jose:${NOW}`);
+    expect(events[0].semantic_key).toBe(`gh:o/r:issue:42:assigned:jose:${NOW}`);
   });
 
   it("is idempotent — re-assigning the same snapshot writes no second event", async () => {

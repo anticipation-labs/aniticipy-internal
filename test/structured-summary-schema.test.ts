@@ -17,16 +17,16 @@ async function seedEvent(semanticKey: string, prNumber: number): Promise<void> {
 
 describe("0018_structured_summaries schema", () => {
   it("pr_summaries accepts and returns the four structured columns", async () => {
-    await seedEvent("gh:pr:900:merged", 900);
+    await seedEvent("gh:anticipation-labs/Anticipy:pr:900:merged", 900);
     await run(
       env.DB,
       `INSERT INTO pr_summaries (semantic_key, pr_number, model, created_at, title, what, why, impact)
-       VALUES ('gh:pr:900:merged', 900, 'm', ?, 'T', 'W', 'Y', 'I')`,
+       VALUES ('gh:anticipation-labs/Anticipy:pr:900:merged', 900, 'm', ?, 'T', 'W', 'Y', 'I')`,
       nowIso()
     );
     const rows = await all<{ title: string | null; what: string | null; why: string | null; impact: string | null }>(
       env.DB,
-      `SELECT title, what, why, impact FROM pr_summaries WHERE semantic_key = 'gh:pr:900:merged'`
+      `SELECT title, what, why, impact FROM pr_summaries WHERE semantic_key = 'gh:anticipation-labs/Anticipy:pr:900:merged'`
     );
     expect(rows[0]).toEqual({ title: "T", what: "W", why: "Y", impact: "I" });
   });
@@ -34,13 +34,13 @@ describe("0018_structured_summaries schema", () => {
   it("issue_summaries accepts and returns title/next_step, and both default NULL", async () => {
     await run(
       env.DB,
-      `INSERT INTO issue_summaries (issue_number, summary, model, created_at, title, next_step)
-       VALUES (901, 'prose', 'm', ?, 'T', 'N')`,
+      `INSERT INTO issue_summaries (repo, issue_number, summary, model, created_at, title, next_step)
+       VALUES ('anticipation-labs/Anticipy', 901, 'prose', 'm', ?, 'T', 'N')`,
       nowIso()
     );
     await run(
       env.DB,
-      `INSERT INTO issue_summaries (issue_number, summary, model, created_at) VALUES (902, 'prose', 'excerpt', ?)`,
+      `INSERT INTO issue_summaries (repo, issue_number, summary, model, created_at) VALUES ('anticipation-labs/Anticipy', 902, 'prose', 'excerpt', ?)`,
       nowIso()
     );
     const rows = await all<{ issue_number: number; title: string | null; next_step: string | null }>(

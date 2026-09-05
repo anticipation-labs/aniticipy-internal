@@ -7,9 +7,31 @@
     "html_url": "https://github.com/SaplingLearn/canopy/issues/17",
     "state": "closed",
     "updated_at": "2026-07-01T19:40:00Z",
-    "user": { "login": "AndresL230" },
-    "assignees": [{ "login": "Jose-Gael-Cruz-Lopez" }],
-    "labels": [{ "name": "P1" }, { "name": "backend" }],
-    "milestone": { "number": 3, "title": "Reliable event capture", "due_on": "2026-07-20T07:00:00Z", "open_issues": 1, "closed_issues": 5 }
+    "user": {
+      "login": "AndresL230"
+    },
+    "assignees": [
+      {
+        "login": "Jose-Gael-Cruz-Lopez"
+      }
+    ],
+    "labels": [
+      {
+        "name": "P1"
+      },
+      {
+        "name": "backend"
+      }
+    ],
+    "milestone": {
+      "number": 3,
+      "title": "Reliable event capture",
+      "due_on": "2026-07-20T07:00:00Z",
+      "open_issues": 1,
+      "closed_issues": 5
+    }
+  },
+  "repository": {
+    "full_name": "SaplingLearn/canopy"
   }
 }

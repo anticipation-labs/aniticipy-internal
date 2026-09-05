@@ -21,6 +21,7 @@ const mockMd = (body: string) => `<div class="mock-md">${body}</div>`;
 
 function makePr(overrides: Partial<MyWorkPr> = {}): MyWorkPr {
   return {
+    repo: "SaplingLearn/sapling",
     number: 42,
     title: "Fix the thing",
     displayTitle: null,
@@ -37,6 +38,7 @@ function makePr(overrides: Partial<MyWorkPr> = {}): MyWorkPr {
 
 function makeTodo(overrides: Partial<MyWorkTodo> = {}): MyWorkTodo {
   return {
+    repo: "SaplingLearn/sapling",
     number: 7,
     title: "Investigate flaky test",
     displayTitle: null,

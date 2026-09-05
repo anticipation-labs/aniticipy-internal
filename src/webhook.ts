@@ -88,14 +88,19 @@ interface GhIssue {
   milestone?: GhMilestone | null;
   pull_request?: unknown; // present only when the "issue" is really a PR
 }
+interface GhRepository {
+  full_name?: string;
+}
 interface PrPayload {
   action?: string;
   pull_request?: GhPullRequest;
+  repository?: GhRepository;
 }
 interface IssuePayload {
   action?: string;
   issue?: GhIssue;
   assignee?: GhUser;
+  repository?: GhRepository;
 }
 
 const ISSUE_ACTIONS = [
@@ -116,6 +121,13 @@ const ISSUE_ACTIONS = [
 // ---------------------------------------------------------------------------
 export function eventsFromDelivery(eventName: string, payload: unknown): CapturedEvent[] {
   if (payload === null || typeof payload !== "object") return [];
+
+  // Every GitHub webhook delivery carries `repository.full_name`, and the
+  // backfill/assign paths synthesize it. It is part of the dedupe identity, so a
+  // payload without one is DROPPED rather than defaulted: guessing the repo would
+  // key another repo's PR 40 onto this repo's PR 40 and silently lose one of them.
+  const repo = (payload as { repository?: GhRepository }).repository?.full_name;
+  if (!repo) return [];
 
   if (eventName === "pull_request") {
     const p = payload as PrPayload;
@@ -140,12 +152,13 @@ export function eventsFromDelivery(eventName: string, payload: unknown): Capture
     });
     return [
       {
-        semantic_key: `gh:pr:${pr.number}:${merged ? "merged" : "closed"}`,
+        semantic_key: `gh:${repo}:pr:${pr.number}:${merged ? "merged" : "closed"}`,
         event_type: merged ? "pr_merged" : "pr_closed",
         ref_number: pr.number,
         subject_login: pr.user.login,
         raw,
         provenance: "webhook",
+        repo,
         occurred_at: pr.merged_at ?? pr.closed_at ?? undefined,
       },
     ];
@@ -174,8 +187,8 @@ export function eventsFromDelivery(eventName: string, payload: unknown): Capture
     // while a redelivery of the same snapshot collapses. assigned/unassigned also
     // embed the assignee so two people assigned in the same tick stay distinct.
     const semanticKey = isAssign
-      ? `gh:issue:${issue.number}:${action}:${assigneeLogin}:${updatedAt}`
-      : `gh:issue:${issue.number}:${action}:${updatedAt}`;
+      ? `gh:${repo}:issue:${issue.number}:${action}:${assigneeLogin}:${updatedAt}`
+      : `gh:${repo}:issue:${issue.number}:${action}:${updatedAt}`;
 
     const raw = JSON.stringify({
       action,
@@ -211,12 +224,27 @@ export function eventsFromDelivery(eventName: string, payload: unknown): Capture
         subject_login: subjectLogin,
         raw,
         provenance: "webhook",
+        repo,
         occurred_at: updatedAt,
       },
     ];
   }
 
   return [];
+}
+
+// ---------------------------------------------------------------------------
+// PURE: is this repo one we capture? HMAC proves a delivery genuinely came from
+// GitHub — it does NOT prove it came from a repo we meant to track, and any repo
+// an admin points at this endpoint would otherwise land in everyone's My Work.
+// GITHUB_REPOS is the comma-separated allowlist; unset falls back to GITHUB_REPO
+// alone, which is the pre-multi-repo behaviour. Compared case-insensitively,
+// since GitHub owner/name is case-preserving but not case-sensitive.
+// ---------------------------------------------------------------------------
+export function isCapturedRepo(env: Env, repo: string): boolean {
+  const configured = env.GITHUB_REPOS ?? env.GITHUB_REPO ?? "";
+  const allow = configured.split(",").map((r) => r.trim().toLowerCase()).filter(Boolean);
+  return allow.includes(repo.trim().toLowerCase());
 }
 
 // ---------------------------------------------------------------------------
@@ -268,6 +296,7 @@ async function summarizeIssueSeam(db: DB, summarizer: Summarizer<IssueSummary> |
   const parsed = JSON.parse(event.raw) as { action: string; issue: { number: number; title: string; body: string | null } };
   if (parsed.action !== "assigned") return;
   await storeIssueSummary(db, summarizer, {
+    repo: event.repo,
     issue_number: parsed.issue.number,
     title: parsed.issue.title,
     body: parsed.issue.body ?? "",
@@ -311,7 +340,13 @@ export async function handleGithubWebhook(
     payload = null; // eventsFromDelivery treats a non-object payload as []
   }
 
-  const events = eventsFromDelivery(eventName, payload);
+  const derived = eventsFromDelivery(eventName, payload);
+  // Verified-but-unwanted repo: acknowledge (a 4xx would make GitHub retry and
+  // eventually disable the hook) and capture nothing.
+  const events = derived.filter((e) => isCapturedRepo(env, e.repo));
+  if (derived.length > 0 && events.length === 0) {
+    return json({ ok: true, ignored: true, reason: "repo not in capture allowlist" });
+  }
   let captured = 0;
   let unchanged = 0;
   for (const ev of events) {

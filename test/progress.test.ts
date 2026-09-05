@@ -55,6 +55,7 @@ function stubFetch(map: Record<string, unknown>): typeof fetch {
 
 function issuePayload(number: number, state: "open" | "closed", action: string) {
   return {
+    repository: { full_name: "SaplingLearn/canopy" },
     action,
     issue: {
       number,
