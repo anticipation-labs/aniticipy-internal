@@ -108,7 +108,7 @@ async function captureAssignment(
     const res = await ingestEvent(env.DB, { ...base, provenance: "canopy" as const }, principalLogin);
     if (res.outcome === "written") {
       captured = true;
-      await applyEventProgress(env.DB, payload);
+      await applyEventProgress(env.DB, payload, repo, env.GITHUB_REPO);
     }
   }
 

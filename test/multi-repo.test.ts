@@ -6,9 +6,10 @@
  */
 import { describe, it, expect } from "vitest";
 import { env } from "cloudflare:test";
-import { all } from "../src/db";
+import { all, first, run, nowIso } from "../src/db";
 import { eventsFromDelivery, isCapturedRepo, handleGithubWebhook } from "../src/webhook";
 import { ingestEvent } from "../src/consumer";
+import { applyEventProgress } from "../src/tools/progress";
 import type { Env } from "../src/env";
 import type { EventRow } from "@shared/rows";
 
@@ -137,5 +138,57 @@ describe("webhook branch honours the allowlist", () => {
     const rows = await all<EventRow>(env.DB, `SELECT * FROM events WHERE ref_number = 77`);
     expect(rows.length).toBe(1);
     expect(rows[0].repo).toBe("SaplingLearn/canopy");
+  });
+});
+
+describe("milestone progress is confined to the primary repo", () => {
+  // `milestones.github_ref` is a BARE milestone number or a bare array of issue
+  // numbers, both resolved against GITHUB_REPO. Another captured repo's
+  // milestone 3 is not this repo's milestone 3, so letting its events through
+  // would overwrite the progress cache with the wrong project's counts.
+  const PRIMARY = "SaplingLearn/canopy"; // GITHUB_REPO in vitest.config.ts
+
+  function issueWithMilestone(repo: string) {
+    return {
+      action: "closed",
+      repository: { full_name: repo },
+      issue: {
+        number: 5, title: "i", body: null,
+        html_url: `https://github.com/${repo}/issues/5`,
+        state: "closed", updated_at: "2026-09-01T00:00:00Z",
+        user: { login: "octocat" }, assignees: [], labels: [],
+        milestone: { number: 3, title: "M", due_on: null, open_issues: 1, closed_issues: 5 },
+      },
+    };
+  }
+
+  async function seedMilestone(ref: string): Promise<number> {
+    const res = await run(
+      env.DB,
+      `INSERT INTO milestones (title, target_date, status, github_ref, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?)`,
+      "M", "2026-08-01", "in_progress", ref, nowIso(), "admin"
+    );
+    return res.meta.last_row_id as number;
+  }
+
+  it("writes progress for an event from the PRIMARY repo", async () => {
+    const id = await seedMilestone("3");
+    await applyEventProgress(env.DB, issueWithMilestone(PRIMARY), PRIMARY, PRIMARY);
+    const row = await first(env.DB, `SELECT * FROM milestone_progress WHERE milestone_id = ?`, id);
+    expect(row).toMatchObject({ closed: 5, total: 6 });
+  });
+
+  it("IGNORES an event from another captured repo — the regression", async () => {
+    const id = await seedMilestone("3");
+    // Same milestone NUMBER, different repo. Pre-fix this overwrote the primary
+    // repo's cache with a foreign project's counts.
+    await applyEventProgress(env.DB, issueWithMilestone(B), B, PRIMARY);
+    expect(await first(env.DB, `SELECT * FROM milestone_progress WHERE milestone_id = ?`, id)).toBeNull();
+  });
+
+  it("fails closed when no primary repo is configured", async () => {
+    const id = await seedMilestone("3");
+    await applyEventProgress(env.DB, issueWithMilestone(PRIMARY), PRIMARY, undefined);
+    expect(await first(env.DB, `SELECT * FROM milestone_progress WHERE milestone_id = ?`, id)).toBeNull();
   });
 });
