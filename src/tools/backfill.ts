@@ -270,7 +270,7 @@ export async function runBackfill(
       if (res.outcome === "written") {
         captured++;
         // Mirror handleGithubWebhook's progress seam for newly-written issues.
-        await applyEventProgress(env.DB, payload);
+        await applyEventProgress(env.DB, payload, repo, env.GITHUB_REPO);
       } else {
         unchanged++;
       }

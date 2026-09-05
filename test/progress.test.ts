@@ -14,6 +14,9 @@ import {
 } from "../src/tools/progress";
 import issueClosed from "./fixtures/gh-issue-closed.json";
 
+// The repo bound as GITHUB_REPO in vitest.config.ts; the fixtures deliver it too.
+const PRIMARY = "SaplingLearn/canopy";
+
 // GitHub's own signing recipe — HMAC-SHA256 hex, prefixed `sha256=`. Mirrors
 // test/webhook.test.ts's sign() helper.
 async function sign(secret: string, body: string): Promise<string> {
@@ -92,14 +95,14 @@ describe("applyEventProgress — milestone-number ref", () => {
     // Verified fixture values (test/fixtures/gh-issue-closed.json): milestone
     // { number: 3, open_issues: 1, closed_issues: 5 } → closed:5, total:6.
     const id = await seedMilestone("3");
-    await applyEventProgress(env.DB, issueClosed);
+    await applyEventProgress(env.DB, issueClosed, PRIMARY, PRIMARY);
     const row = await first<MilestoneProgressRow>(env.DB, `SELECT * FROM milestone_progress WHERE milestone_id = ?`, id);
     expect(row).toMatchObject({ closed: 5, total: 6, source: "event" });
   });
 
   it("no-ops when no milestone has a matching github_ref", async () => {
     await seedMilestone("99");
-    await applyEventProgress(env.DB, issueClosed);
+    await applyEventProgress(env.DB, issueClosed, PRIMARY, PRIMARY);
     expect(await all(env.DB, `SELECT * FROM milestone_progress`)).toHaveLength(0);
   });
 });
@@ -113,7 +116,7 @@ describe("applyEventProgress — array ref", () => {
     await ingestEvent(env.DB, event7, "github-webhook");
     await ingestEvent(env.DB, event8, "github-webhook");
 
-    await applyEventProgress(env.DB, issuePayload(7, "closed", "closed"));
+    await applyEventProgress(env.DB, issuePayload(7, "closed", "closed"), PRIMARY, PRIMARY);
 
     const row = await first<MilestoneProgressRow>(env.DB, `SELECT * FROM milestone_progress WHERE milestone_id = ?`, id);
     expect(row).toMatchObject({ closed: 1, total: 2, source: "event" });

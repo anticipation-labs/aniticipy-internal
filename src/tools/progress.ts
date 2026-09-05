@@ -94,14 +94,17 @@ export async function getProgress(db: DB): Promise<Map<number, MilestoneProgress
   return new Map(rows.map((r) => [r.milestone_id, r]));
 }
 
-// Latest-snapshot SQL: for a set of issue numbers, the most-recently-captured
-// 'issue' event per ref_number (occurred_at DESC, id DESC as the tiebreak).
+// Latest-snapshot SQL: for a set of issue numbers IN ONE REPO, the most-recently-
+// captured 'issue' event per ref_number (occurred_at DESC, id DESC as the
+// tiebreak). Scoped by repo since 0020: a second repo's issue #12 is a different
+// issue, and letting it into this window would both miscount and — being newer —
+// win the ROW_NUMBER and replace the real snapshot.
 function latestIssueSnapshotSql(count: number): string {
   const placeholders = Array(count).fill("?").join(", ");
   return `
     SELECT ref_number, raw FROM (
       SELECT ref_number, raw, ROW_NUMBER() OVER (PARTITION BY ref_number ORDER BY occurred_at DESC, id DESC) rn
-      FROM events WHERE event_type = 'issue' AND ref_number IN (${placeholders})
+      FROM events WHERE event_type = 'issue' AND repo = ? AND ref_number IN (${placeholders})
     ) WHERE rn = 1
   `;
 }
@@ -118,8 +121,25 @@ function latestIssueSnapshotSql(count: number): string {
  *     latest snapshots have state:"closed").
  *
  * Never throws on a malformed payload — both branches simply no-op.
+ *
+ * REPO SCOPING (0020): `milestones.github_ref` is a bare milestone number or a
+ * bare array of issue numbers, and both are resolved against the PRIMARY repo
+ * (GITHUB_REPO) — the numbers carry no repo of their own. So an event from any
+ * other captured repo must not touch progress at all: its milestone 3 is not
+ * this repo's milestone 3, and its issue 12 is not this repo's issue 12. Without
+ * this guard, enabling multi-repo capture would silently corrupt the progress
+ * cache with another repo's counts.
  */
-export async function applyEventProgress(db: DB, payload: unknown): Promise<void> {
+export async function applyEventProgress(
+  db: DB,
+  payload: unknown,
+  repo: string,
+  primaryRepo: string | undefined
+): Promise<void> {
+  // Fails closed: no primary repo configured means github_ref resolves against
+  // nothing, so there is no correct milestone to attribute progress to.
+  if (!primaryRepo || repo.toLowerCase() !== primaryRepo.toLowerCase()) return;
+
   const derived = progressFromIssueEvent(payload);
   if (derived) {
     const matches = await all<MilestoneRow>(
@@ -148,7 +168,7 @@ export async function applyEventProgress(db: DB, payload: unknown): Promise<void
     }
     if (!Array.isArray(ref) || !ref.includes(issueNumber)) continue;
 
-    const rows = ref.length > 0 ? await all<{ ref_number: number; raw: string }>(db, latestIssueSnapshotSql(ref.length), ...ref) : [];
+    const rows = ref.length > 0 ? await all<{ ref_number: number; raw: string }>(db, latestIssueSnapshotSql(ref.length), repo, ...ref) : [];
     let closed = 0;
     for (const row of rows) {
       try {
