@@ -6,6 +6,7 @@ routes = [
   { pattern = "www.anticipy.ai/internal", zone_name = "anticipy.ai" },
   { pattern = "www.anticipy.ai/internal/*", zone_name = "anticipy.ai" },
 ]
+workers_dev = true
 
 # Static Assets: served before the Worker fetch handler. Matched files (e.g. "/")
 # are returned directly; unmatched paths (/ingest, /feed, /mcp) fall through to src/index.ts.
