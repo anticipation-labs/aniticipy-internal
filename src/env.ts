@@ -11,4 +11,8 @@ export interface Env {
   GEMINI_API_KEY?: string; // Google Gemini key for capture-time PR/issue summaries (REST generateContent); absent → excerpt fallback.
   GITHUB_SERVICE_TOKEN?: string; // app-level token for the scheduled progress-cache recompute backstop; absent → scheduled() no-ops
   ADMIN_LOGINS?: string;  // comma-separated GitHub logins allowed to run admin actions (e.g. the server-side backfill)
+  // Comma-separated "owner/name" repos whose webhook deliveries are CAPTURED.
+  // Unset → only GITHUB_REPO. HMAC proves a delivery came from GitHub, not that it
+  // came from a repo we meant to track, so capture is allowlisted separately.
+  GITHUB_REPOS?: string;
 }

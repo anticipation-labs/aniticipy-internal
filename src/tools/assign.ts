@@ -99,9 +99,10 @@ async function captureAssignment(
   principalLogin: string,
   issue: GhIssueListItem,
   assigneeLogin: string,
+  repo: string,
   opts?: AssignOpts
 ): Promise<boolean> {
-  const payload = issueDelivery(issue, assigneeLogin);
+  const payload = issueDelivery(issue, repo, assigneeLogin);
   let captured = false;
   for (const base of eventsFromDelivery("issues", payload)) {
     const res = await ingestEvent(env.DB, { ...base, provenance: "canopy" as const }, principalLogin);
@@ -124,6 +125,7 @@ async function captureAssignment(
         : null;
   try {
     await storeIssueSummary(env.DB, summarizer, {
+      repo,
       issue_number: issue.number,
       title: issue.title,
       body: issue.body ?? "",
@@ -187,7 +189,7 @@ export async function createTask(
     return failed(`Issue #${issue.number} was created, but GitHub did not assign ${assignee} — they may not have access to ${repo}`);
   }
 
-  const captured = await captureAssignment(env, principalLogin, issue, assignee, opts);
+  const captured = await captureAssignment(env, principalLogin, issue, assignee, repo, opts);
   return { ok: true, number: issue.number, url: issue.html_url, captured, assignee };
 }
 
@@ -225,7 +227,7 @@ export async function assignTask(
     return failed(`GitHub did not assign ${assignee} to #${issueNumber} — they may not have access to ${repo}`);
   }
 
-  const captured = await captureAssignment(env, principalLogin, issue, assignee, opts);
+  const captured = await captureAssignment(env, principalLogin, issue, assignee, repo, opts);
   return { ok: true, number: issue.number, url: issue.html_url, captured, assignee };
 }
 

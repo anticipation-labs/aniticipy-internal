@@ -3,6 +3,7 @@
 // the Worker (src/) and the web build (web/) agree on the shape.
 
 export interface MyWorkPr {
+  repo: string; // "owner/name" — shown when more than one repo is captured
   number: number;
   title: string;
   displayTitle: string | null; // humanized title from the summarizer; render falls back to the raw GitHub title
@@ -16,6 +17,7 @@ export interface MyWorkPr {
 }
 
 export interface MyWorkTodo {
+  repo: string; // "owner/name" — shown when more than one repo is captured
   number: number;
   title: string;
   displayTitle: string | null; // humanized title from the summarizer; render falls back to the raw GitHub title

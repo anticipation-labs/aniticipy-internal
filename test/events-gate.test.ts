@@ -6,12 +6,13 @@ import type { EventRow } from "@shared/rows";
 import { IngestPayload, type CapturedEvent } from "@shared/contract";
 
 const ev = (over: Partial<CapturedEvent> = {}): CapturedEvent => ({
-  semantic_key: "gh:pr:42:merged",
+  semantic_key: "gh:anticipation-labs/Anticipy:pr:42:merged",
   event_type: "pr_merged",
   ref_number: 42,
   subject_login: "AndresL230",
   raw: JSON.stringify({ pr: { number: 42, title: "t", body: "b" } }),
   provenance: "webhook",
+    repo: "anticipation-labs/Anticipy",
   occurred_at: "2026-07-01T10:00:00Z",
   ...over,
 });
@@ -33,7 +34,7 @@ describe("ingestEvent gate arm", () => {
   it("consume() no longer carries an events[] arm: the key is stripped, zero rows written, no events field in the result", async () => {
     const payloadWithEvents = {
       session: { id: "evt-S1", author: "spoof", ended_at: "2026-07-01T10:00:00Z", skill_version: "2.0" },
-      events: [ev(), ev({ semantic_key: "gh:pr:43:closed", event_type: "pr_closed", ref_number: 43 })],
+      events: [ev(), ev({ semantic_key: "gh:anticipation-labs/Anticipy:pr:43:closed", event_type: "pr_closed", ref_number: 43 })],
     };
 
     const parsed = IngestPayload.parse(structuredClone(payloadWithEvents));

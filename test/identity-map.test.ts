@@ -7,12 +7,13 @@ import type { IdentityTaskRow, PersonRow } from "@shared/rows";
 import type { CapturedEvent } from "@shared/contract";
 
 const ev = (over: Partial<CapturedEvent> = {}): CapturedEvent => ({
-  semantic_key: "gh:pr:7:merged",
+  semantic_key: "gh:anticipation-labs/Anticipy:pr:7:merged",
   event_type: "pr_merged",
   ref_number: 7,
   subject_login: "mystery-dev",
   raw: JSON.stringify({ pr: { number: 7, title: "t", body: "b" } }),
   provenance: "webhook",
+    repo: "anticipation-labs/Anticipy",
   occurred_at: "2026-07-01T10:00:00Z",
   ...over,
 });

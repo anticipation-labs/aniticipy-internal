@@ -30,7 +30,7 @@ const getJson = async <T>(path: string, cookie: string): Promise<T> =>
 // A merged-PR event whose raw carries everything getMyWork's projection parses
 // (number, title, html_url, merged) — so the retroactive test is end-to-end real.
 const prEvent = (n: number, login: string, title: string, occurredAt: string): CapturedEvent => ({
-  semantic_key: `gh:pr:${n}:merged`,
+  semantic_key: `gh:anticipation-labs/Anticipy:pr:${n}:merged`,
   event_type: "pr_merged",
   ref_number: n,
   subject_login: login,
@@ -38,6 +38,7 @@ const prEvent = (n: number, login: string, title: string, occurredAt: string): C
     pr: { number: n, title, body: "b", html_url: `https://github.com/SaplingLearn/sapling/pull/${n}`, merged: true, merged_at: occurredAt, closed_at: occurredAt, user: { login }, milestone: null },
   }),
   provenance: "webhook",
+    repo: "anticipation-labs/Anticipy",
   occurred_at: occurredAt,
 });
 
@@ -54,7 +55,7 @@ describe("GET /identity-tasks", () => {
     expect(tasks[0].status).toBe("pending");
     expect(tasks[0].sample.length).toBe(3); // capped — 4 events captured
     expect(tasks[0].sample[0]).toMatchObject({
-      semantic_key: "gh:pr:4:merged",
+      semantic_key: "gh:anticipation-labs/Anticipy:pr:4:merged",
       event_type: "pr_merged",
       ref_number: 4,
       title: "PR number 4", // extracted from the event's own raw

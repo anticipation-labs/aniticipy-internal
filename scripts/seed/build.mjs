@@ -9,6 +9,8 @@ const jsonLit = (obj) => (obj === null || obj === undefined ? "NULL" : q(JSON.st
 // Provenance stamped on structured summary rows so they read as "done" (My Work's
 // Sync skip-check treats a row as generated only when model != 'excerpt' AND
 // title IS NOT NULL). Matches GEMINI_MODEL in src/tools/summarize.ts.
+// Repo a seeded event belongs to when the fixture does not name one (0020).
+const SEED_REPO = "SaplingLearn/canopy";
 const STRUCTURED_MODEL = "gemini-2.5-flash-lite";
 
 /** True iff the loader was asked to touch remote D1 — the loader must refuse. */
@@ -99,8 +101,8 @@ export function buildSeedStatements(fx) {
 
   for (const e of fx.events?.events ?? []) {
     s.push(
-      `INSERT INTO events (semantic_key, event_type, ref_number, subject_login, raw, provenance, occurred_at, recorded_at, recorded_by) VALUES (` +
-        `${q(e.semantic_key)}, ${q(e.event_type)}, ${num(e.ref_number)}, ${q(e.subject_login)}, ${jsonLit(e.raw)}, ${q(e.provenance ?? "backfill")}, ${q(e.occurred_at)}, ${q(e.recorded_at)}, ${q(e.recorded_by ?? "github-webhook")})`
+      `INSERT INTO events (semantic_key, event_type, ref_number, subject_login, raw, provenance, repo, occurred_at, recorded_at, recorded_by) VALUES (` +
+        `${q(e.semantic_key)}, ${q(e.event_type)}, ${num(e.ref_number)}, ${q(e.subject_login)}, ${jsonLit(e.raw)}, ${q(e.provenance ?? "backfill")}, ${q(e.repo ?? SEED_REPO)}, ${q(e.occurred_at)}, ${q(e.recorded_at)}, ${q(e.recorded_by ?? "github-webhook")})`
     );
     // Structured summaries (0018): fixtures carry an object. PRs are structured-
     // only (the prose `summary` column was dropped in 0019) — title/what/why/impact
@@ -118,8 +120,8 @@ export function buildSeedStatements(fx) {
       const i = e.issue_summary;
       const model = i.model ?? STRUCTURED_MODEL;
       s.push(
-        `INSERT INTO issue_summaries (issue_number, summary, model, created_at, title, next_step) VALUES (` +
-          `${num(e.ref_number)}, ${q(i.summary)}, ${q(model)}, ${q(e.recorded_at)}, ${q(i.title)}, ${q(i.next_step)})`
+        `INSERT INTO issue_summaries (repo, issue_number, summary, model, created_at, title, next_step) VALUES (` +
+          `${q(e.repo ?? SEED_REPO)}, ${num(e.ref_number)}, ${q(i.summary)}, ${q(model)}, ${q(e.recorded_at)}, ${q(i.title)}, ${q(i.next_step)})`
       );
     }
   }

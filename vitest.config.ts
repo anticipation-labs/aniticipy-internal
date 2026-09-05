@@ -29,6 +29,10 @@ export default defineConfig({
           GITHUB_CLIENT_SECRET: "test-client-secret",
           GITHUB_WEBHOOK_SECRET: "test-webhook-secret",
           ADMIN_LOGINS: "admin-user", // the admin allowlist the admin-gated route + isAdmin() test against
+          // The capture allowlist (0020). Fixtures deliver as SaplingLearn/canopy;
+          // "o/r" is the repo the backfill/assign tests configure.
+          GITHUB_REPO: "SaplingLearn/canopy",
+          GITHUB_REPOS: "SaplingLearn/canopy,o/r,anticipation-labs/Anticipy",
           DEV_LOGIN: "", // override .dev.vars: tests exercise REAL auth, never the dev bypass
         },
       },

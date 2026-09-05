@@ -30,12 +30,13 @@ function prEvent(over: Partial<CapturedEvent> & { number: number; login: string;
     },
   });
   return {
-    semantic_key: `gh:pr:${number}:${merged ? "merged" : "closed"}`,
+    semantic_key: `gh:anticipation-labs/Anticipy:pr:${number}:${merged ? "merged" : "closed"}`,
     event_type: merged ? "pr_merged" : "pr_closed",
     ref_number: number,
     subject_login: login,
     raw,
     provenance: "webhook",
+    repo: "anticipation-labs/Anticipy",
     occurred_at: NOW,
     ...rest,
   };
@@ -68,12 +69,13 @@ function issueEvent(over: {
     },
   });
   return {
-    semantic_key: `gh:issue:${number}:${action}:${updatedAt}`,
+    semantic_key: `gh:anticipation-labs/Anticipy:issue:${number}:${action}:${updatedAt}`,
     event_type: "issue",
     ref_number: number,
     subject_login: assigneeLogin,
     raw,
     provenance: "webhook",
+    repo: "anticipation-labs/Anticipy",
     occurred_at: updatedAt,
   };
 }
@@ -83,7 +85,7 @@ describe("getMyWork — previous activity cap", () => {
     for (let n = 1; n <= 7; n++) {
       await ingestEvent(env.DB, prEvent({ number: n, login: "AndresL230", occurred_at: daysBefore(NOW, 7 - n) }), "github-webhook");
     }
-    await storePrSummary(env.DB, null, { semantic_key: "gh:pr:7:merged", pr_number: 7, title: "PR 7", body: "some body" });
+    await storePrSummary(env.DB, null, { semantic_key: "gh:anticipation-labs/Anticipy:pr:7:merged", pr_number: 7, title: "PR 7", body: "some body" });
 
     const work = await getMyWork(env.DB, "AndresL230");
     expect(work.degraded).toBe(false);
@@ -222,7 +224,7 @@ describe("getMyWork — todo carries the issue summary", () => {
     let work = await getMyWork(env.DB, "AndresL230");
     expect(work.todo.find((t) => t.number === 8)?.summary).toBeNull();
 
-    await storeIssueSummary(env.DB, null, { issue_number: 8, title: "Issue 8", body: "some body" });
+    await storeIssueSummary(env.DB, null, { repo: "anticipation-labs/Anticipy", issue_number: 8, title: "Issue 8", body: "some body" });
     work = await getMyWork(env.DB, "AndresL230");
     expect(work.todo.find((t) => t.number === 8)?.summary).toBe("some body"); // excerpt fallback (no summarizer)
   });
@@ -236,7 +238,7 @@ describe("getMyWork — structured fields", () => {
       model: "stub-model",
       summarize: async () => ({ title: "Humanized seven", what: "Did the thing.", why: "It was broken.", impact: "Users can log in." }),
     };
-    await storePrSummary(env.DB, stub, { semantic_key: "gh:pr:7:merged", pr_number: 7, title: "t", body: "b" });
+    await storePrSummary(env.DB, stub, { semantic_key: "gh:anticipation-labs/Anticipy:pr:7:merged", pr_number: 7, title: "t", body: "b" });
 
     const work = await getMyWork(env.DB, "dev");
     expect(work.previousActivity[0]).toMatchObject({
@@ -260,7 +262,7 @@ describe("getMyWork — structured fields", () => {
       model: "stub-model",
       summarize: async () => ({ title: "Humanized nine", summary: "What it is.", next_step: "Do the fix." }),
     };
-    await storeIssueSummary(env.DB, stub, { issue_number: 9, title: "t", body: "b" });
+    await storeIssueSummary(env.DB, stub, { repo: "anticipation-labs/Anticipy", issue_number: 9, title: "t", body: "b" });
 
     const work = await getMyWork(env.DB, "dev");
     expect(work.todo[0]).toMatchObject({

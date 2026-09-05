@@ -6,12 +6,13 @@ import type { EventRow, IdentityTaskRow } from "@shared/rows";
 import type { CapturedEvent } from "@shared/contract";
 
 const ev = (over: Partial<CapturedEvent> = {}): CapturedEvent => ({
-  semantic_key: "gh:pr:7:merged",
+  semantic_key: "gh:anticipation-labs/Anticipy:pr:7:merged",
   event_type: "pr_merged",
   ref_number: 7,
   subject_login: "mystery-dev",
   raw: JSON.stringify({ pr: { number: 7, title: "Fix the flux capacitor", body: "b" } }),
   provenance: "webhook",
+    repo: "anticipation-labs/Anticipy",
   occurred_at: "2026-07-01T10:00:00Z",
   ...over,
 });
@@ -34,8 +35,8 @@ describe("ingestEvent identity intake", () => {
 
   it("many events from one unknown person make one task", async () => {
     await ingestEvent(env.DB, ev(), "github-webhook");
-    await ingestEvent(env.DB, ev({ semantic_key: "gh:pr:8:merged", ref_number: 8 }), "github-webhook");
-    await ingestEvent(env.DB, ev({ semantic_key: "gh:issue:9:closed:2026-07-01T10:00:00Z", event_type: "issue", ref_number: 9 }), "github-webhook");
+    await ingestEvent(env.DB, ev({ semantic_key: "gh:anticipation-labs/Anticipy:pr:8:merged", ref_number: 8 }), "github-webhook");
+    await ingestEvent(env.DB, ev({ semantic_key: "gh:anticipation-labs/Anticipy:issue:9:closed:2026-07-01T10:00:00Z", event_type: "issue", ref_number: 9 }), "github-webhook");
     const tasks = await all<IdentityTaskRow>(env.DB, `SELECT * FROM identity_tasks`);
     expect(tasks.length).toBe(1);
     expect((await all<EventRow>(env.DB, `SELECT * FROM events`)).length).toBe(3);
@@ -58,7 +59,7 @@ describe("ingestEvent identity intake", () => {
   it("a resolved task is never re-raised by later events (PK guard)", async () => {
     await ingestEvent(env.DB, ev(), "github-webhook");
     await run(env.DB, `UPDATE identity_tasks SET status = 'resolved', resolved_at = '2026-07-02T00:00:00Z', resolved_by = 'andres' WHERE login = 'mystery-dev'`);
-    await ingestEvent(env.DB, ev({ semantic_key: "gh:pr:99:merged", ref_number: 99 }), "github-webhook");
+    await ingestEvent(env.DB, ev({ semantic_key: "gh:anticipation-labs/Anticipy:pr:99:merged", ref_number: 99 }), "github-webhook");
     const tasks = await all<IdentityTaskRow>(env.DB, `SELECT * FROM identity_tasks WHERE login = 'mystery-dev'`);
     expect(tasks.length).toBe(1);
     expect(tasks[0].status).toBe("resolved"); // untouched, not flipped back to pending

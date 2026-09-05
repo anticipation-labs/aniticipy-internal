@@ -10,7 +10,7 @@ const NOW = new Date().toISOString();
 
 function prEvent(number: number, login: string): CapturedEvent {
   return {
-    semantic_key: `gh:pr:${number}:merged`,
+    semantic_key: `gh:anticipation-labs/Anticipy:pr:${number}:merged`,
     event_type: "pr_merged",
     ref_number: number,
     subject_login: login,
@@ -28,13 +28,14 @@ function prEvent(number: number, login: string): CapturedEvent {
       },
     }),
     provenance: "webhook",
+    repo: "anticipation-labs/Anticipy",
     occurred_at: NOW,
   };
 }
 
 function issueEvent(number: number, login: string): CapturedEvent {
   return {
-    semantic_key: `gh:issue:${number}:opened:${NOW}`,
+    semantic_key: `gh:anticipation-labs/Anticipy:issue:${number}:opened:${NOW}`,
     event_type: "issue",
     ref_number: number,
     subject_login: login,
@@ -53,6 +54,7 @@ function issueEvent(number: number, login: string): CapturedEvent {
       },
     }),
     provenance: "webhook",
+    repo: "anticipation-labs/Anticipy",
     occurred_at: NOW,
   };
 }

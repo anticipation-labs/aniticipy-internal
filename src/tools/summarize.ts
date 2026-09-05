@@ -266,7 +266,7 @@ export async function storePrSummary(
 export async function storeIssueSummary(
   db: DB,
   summarizer: Summarizer<IssueSummary> | null,
-  issue: { issue_number: number; title: string; body: string }
+  issue: { repo: string; issue_number: number; title: string; body: string }
 ): Promise<IssueSummaryRow> {
   let structured: IssueSummary | null = null;
   let model = "excerpt";
@@ -282,8 +282,9 @@ export async function storeIssueSummary(
   const created_at = nowIso();
   await run(
     db,
-    `INSERT OR REPLACE INTO issue_summaries (issue_number, summary, model, created_at, title, next_step)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT OR REPLACE INTO issue_summaries (repo, issue_number, summary, model, created_at, title, next_step)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    issue.repo,
     issue.issue_number,
     summary,
     model,
@@ -292,6 +293,7 @@ export async function storeIssueSummary(
     structured?.next_step ?? null
   );
   return {
+    repo: issue.repo,
     issue_number: issue.issue_number,
     summary,
     model,

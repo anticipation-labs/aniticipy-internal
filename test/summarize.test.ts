@@ -75,20 +75,20 @@ async function postWebhook(
 
 describe("storePrSummary", () => {
   it("stores the stub summarizer's structured summary under its own model id", async () => {
-    await seedEvent("gh:pr:1:merged", 1);
+    await seedEvent("gh:anticipation-labs/Anticipy:pr:1:merged", 1);
     const stub: Summarizer<PrSummary> = { model: "stub-model", summarize: async () => PR_STUB };
-    const row = await storePrSummary(env.DB, stub, { semantic_key: "gh:pr:1:merged", pr_number: 1, title: "t", body: "b" });
+    const row = await storePrSummary(env.DB, stub, { semantic_key: "gh:anticipation-labs/Anticipy:pr:1:merged", pr_number: 1, title: "t", body: "b" });
     expect(row.model).toBe("stub-model");
     expect(row).toMatchObject({ title: "Humanized PR title", what: "The concrete change.", why: "Because reasons.", impact: "Users win." });
-    const stored = await all<PrSummaryRow>(env.DB, `SELECT * FROM pr_summaries WHERE semantic_key = 'gh:pr:1:merged'`);
+    const stored = await all<PrSummaryRow>(env.DB, `SELECT * FROM pr_summaries WHERE semantic_key = 'gh:anticipation-labs/Anticipy:pr:1:merged'`);
     expect(stored[0]).toMatchObject({ title: "Humanized PR title", what: "The concrete change.", why: "Because reasons.", impact: "Users win." });
   });
 
   it("marks the row model:'excerpt' with null structured columns when the summarizer returns null, and never throws", async () => {
-    await seedEvent("gh:pr:2:merged", 2);
+    await seedEvent("gh:anticipation-labs/Anticipy:pr:2:merged", 2);
     const nullStub: Summarizer<PrSummary> = { model: "stub", summarize: async () => null };
     const row = await storePrSummary(env.DB, nullStub, {
-      semantic_key: "gh:pr:2:merged",
+      semantic_key: "gh:anticipation-labs/Anticipy:pr:2:merged",
       pr_number: 2,
       title: "Another PR",
       body: "Body text here",
@@ -98,7 +98,7 @@ describe("storePrSummary", () => {
   });
 
   it("marks the row model:'excerpt' (null structured columns) when the summarizer throws, and never throws", async () => {
-    await seedEvent("gh:pr:3:merged", 3);
+    await seedEvent("gh:anticipation-labs/Anticipy:pr:3:merged", 3);
     const throwingStub: Summarizer<PrSummary> = {
       model: "stub",
       summarize: async () => {
@@ -107,14 +107,14 @@ describe("storePrSummary", () => {
     };
     await expect(
       storePrSummary(env.DB, throwingStub, {
-        semantic_key: "gh:pr:3:merged",
+        semantic_key: "gh:anticipation-labs/Anticipy:pr:3:merged",
         pr_number: 3,
         title: "Third PR",
         body: "",
       })
     ).resolves.not.toThrow();
     const row = await storePrSummary(env.DB, throwingStub, {
-      semantic_key: "gh:pr:3:merged",
+      semantic_key: "gh:anticipation-labs/Anticipy:pr:3:merged",
       pr_number: 3,
       title: "Third PR",
       body: "",
@@ -124,9 +124,9 @@ describe("storePrSummary", () => {
   });
 
   it("marks the row model:'excerpt' (null structured columns) when no summarizer is provided (null)", async () => {
-    await seedEvent("gh:pr:4:merged", 4);
+    await seedEvent("gh:anticipation-labs/Anticipy:pr:4:merged", 4);
     const row = await storePrSummary(env.DB, null, {
-      semantic_key: "gh:pr:4:merged",
+      semantic_key: "gh:anticipation-labs/Anticipy:pr:4:merged",
       pr_number: 4,
       title: "Fourth PR",
       body: "   ",
@@ -161,13 +161,13 @@ describe("excerptSummary", () => {
 });
 
 describe("webhook → summarize wiring", () => {
-  it("pr-merged fixture + stub summarizer → one pr_summaries row keyed gh:pr:42:merged; replay writes no second row", async () => {
+  it("pr-merged fixture + stub summarizer → one pr_summaries row keyed gh:SaplingLearn/canopy:pr:42:merged; replay writes no second row", async () => {
     const stub: Summarizer<PrSummary> = { model: "stub", summarize: async () => PR_STUB };
     const res = await postWebhook("pull_request", prMerged, { summarizer: stub });
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true, captured: 1, unchanged: 0 });
 
-    let rows = await all<PrSummaryRow>(env.DB, `SELECT * FROM pr_summaries WHERE semantic_key = ?`, "gh:pr:42:merged");
+    let rows = await all<PrSummaryRow>(env.DB, `SELECT * FROM pr_summaries WHERE semantic_key = ?`, "gh:SaplingLearn/canopy:pr:42:merged");
     expect(rows.length).toBe(1);
     expect(rows[0].pr_number).toBe(42);
     expect(rows[0].model).toBe("stub");
@@ -177,7 +177,7 @@ describe("webhook → summarize wiring", () => {
     const res2 = await postWebhook("pull_request", prMerged, { summarizer: stub });
     expect(res2.status).toBe(200);
     expect(await res2.json()).toEqual({ ok: true, captured: 0, unchanged: 1 });
-    rows = await all<PrSummaryRow>(env.DB, `SELECT * FROM pr_summaries WHERE semantic_key = ?`, "gh:pr:42:merged");
+    rows = await all<PrSummaryRow>(env.DB, `SELECT * FROM pr_summaries WHERE semantic_key = ?`, "gh:SaplingLearn/canopy:pr:42:merged");
     expect(rows.length).toBe(1);
   });
 
@@ -192,7 +192,7 @@ describe("webhook → summarize wiring", () => {
   it("with no explicit summarizer and GEMINI_API_KEY unset in tests, the webhook resolves it to null → excerpt (never throws, never hits the network)", async () => {
     const res = await postWebhook("pull_request", prMerged);
     expect(res.status).toBe(200);
-    const rows = await all<PrSummaryRow>(env.DB, `SELECT * FROM pr_summaries WHERE semantic_key = ?`, "gh:pr:42:merged");
+    const rows = await all<PrSummaryRow>(env.DB, `SELECT * FROM pr_summaries WHERE semantic_key = ?`, "gh:SaplingLearn/canopy:pr:42:merged");
     expect(rows.length).toBe(1);
     expect(rows[0].model).toBe("excerpt");
   });
@@ -366,9 +366,9 @@ describe("geminiSummarizer — timeout guard", () => {
   }, 1500);
 
   it("storePrSummary falls back to excerpt (never hangs) when the Gemini call hangs past the timeout", async () => {
-    await seedEvent("gh:pr:99:merged", 99);
+    await seedEvent("gh:anticipation-labs/Anticipy:pr:99:merged", 99);
     const row = await storePrSummary(env.DB, geminiPrSummarizer("k", { timeoutMs: 50, fetchImpl: hangingFetch }), {
-      semantic_key: "gh:pr:99:merged",
+      semantic_key: "gh:anticipation-labs/Anticipy:pr:99:merged",
       pr_number: 99,
       title: "A PR",
       body: "Body text here",
@@ -379,6 +379,7 @@ describe("geminiSummarizer — timeout guard", () => {
 
   it("storeIssueSummary falls back to excerpt (never hangs) when the Gemini call hangs past the timeout", async () => {
     const row = await storeIssueSummary(env.DB, geminiIssueSummarizer("k", { timeoutMs: 50, fetchImpl: hangingFetch }), {
+      repo: "anticipation-labs/Anticipy",
       issue_number: 99,
       title: "An issue",
       body: "Body text here",
@@ -423,7 +424,7 @@ describe("geminiSummarizer — timeout guard", () => {
 describe("storeIssueSummary", () => {
   it("stores the stub summarizer's structured summary under its own model id", async () => {
     const stub: Summarizer<IssueSummary> = { model: "stub", summarize: async () => ISSUE_STUB };
-    const row = await storeIssueSummary(env.DB, stub, { issue_number: 1, title: "Some issue", body: "Some body" });
+    const row = await storeIssueSummary(env.DB, stub, { repo: "anticipation-labs/Anticipy", issue_number: 1, title: "Some issue", body: "Some body" });
     expect(row.summary).toBe("What the issue is.");
     expect(row.model).toBe("stub");
     expect(row.issue_number).toBe(1);
@@ -436,7 +437,7 @@ describe("storeIssueSummary", () => {
 
   it("falls back to excerptSummary (model:'excerpt') when the summarizer returns null, and never throws", async () => {
     const nullStub: Summarizer<IssueSummary> = { model: "stub", summarize: async () => null };
-    const row = await storeIssueSummary(env.DB, nullStub, { issue_number: 2, title: "Another issue", body: "Body text here" });
+    const row = await storeIssueSummary(env.DB, nullStub, { repo: "anticipation-labs/Anticipy", issue_number: 2, title: "Another issue", body: "Body text here" });
     expect(row.model).toBe("excerpt");
     expect(row.summary).toBe(excerptSummary("Another issue", "Body text here"));
     expect(row).toMatchObject({ title: null, next_step: null });
@@ -450,16 +451,16 @@ describe("storeIssueSummary", () => {
       },
     };
     await expect(
-      storeIssueSummary(env.DB, throwingStub, { issue_number: 3, title: "Third issue", body: "" })
+      storeIssueSummary(env.DB, throwingStub, { repo: "anticipation-labs/Anticipy", issue_number: 3, title: "Third issue", body: "" })
     ).resolves.not.toThrow();
-    const row = await storeIssueSummary(env.DB, throwingStub, { issue_number: 3, title: "Third issue", body: "" });
+    const row = await storeIssueSummary(env.DB, throwingStub, { repo: "anticipation-labs/Anticipy", issue_number: 3, title: "Third issue", body: "" });
     expect(row.model).toBe("excerpt");
     expect(row.summary).toBe("Third issue"); // empty body → title
     expect(row).toMatchObject({ title: null, next_step: null });
   });
 
   it("falls back to excerptSummary when no summarizer is provided (null)", async () => {
-    const row = await storeIssueSummary(env.DB, null, { issue_number: 4, title: "Fourth issue", body: "   " });
+    const row = await storeIssueSummary(env.DB, null, { repo: "anticipation-labs/Anticipy", issue_number: 4, title: "Fourth issue", body: "   " });
     expect(row.model).toBe("excerpt");
     expect(row.summary).toBe("Fourth issue"); // whitespace-only body collapses to empty → title
     expect(row).toMatchObject({ title: null, next_step: null });
@@ -467,9 +468,9 @@ describe("storeIssueSummary", () => {
 
   it("INSERT OR REPLACE overwrites the prior summary for the same issue_number", async () => {
     const s1: Summarizer<IssueSummary> = { model: "m1", summarize: async () => ({ ...ISSUE_STUB, summary: "First summary" }) };
-    await storeIssueSummary(env.DB, s1, { issue_number: 5, title: "Issue", body: "body" });
+    await storeIssueSummary(env.DB, s1, { repo: "anticipation-labs/Anticipy", issue_number: 5, title: "Issue", body: "body" });
     const s2: Summarizer<IssueSummary> = { model: "m2", summarize: async () => ({ ...ISSUE_STUB, summary: "Second summary" }) };
-    await storeIssueSummary(env.DB, s2, { issue_number: 5, title: "Issue", body: "body" });
+    await storeIssueSummary(env.DB, s2, { repo: "anticipation-labs/Anticipy", issue_number: 5, title: "Issue", body: "body" });
     const rows = await all<IssueSummaryRow>(env.DB, `SELECT * FROM issue_summaries WHERE issue_number = ?`, 5);
     expect(rows.length).toBe(1);
     expect(rows[0].summary).toBe("Second summary");

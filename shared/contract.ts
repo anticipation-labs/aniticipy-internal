@@ -56,12 +56,13 @@ export const MilestoneProposal = z.object({
 // ABOUT — a second identity, distinct from the writer principal — and is trusted
 // only because the webhook branch verified the delivery's HMAC before the gate.
 export const CapturedEvent = z.object({
-  semantic_key: z.string().min(1),   // derived identity, e.g. 'gh:pr:42:merged'
+  semantic_key: z.string().min(1),   // derived identity, e.g. 'gh:owner/name:pr:42:merged'
   event_type: z.enum(["pr_merged", "pr_closed", "issue"]),
   ref_number: z.number().int(),
   subject_login: z.string().min(1),
   raw: z.string(),                   // JSON snapshot slice — the truth
   provenance: z.enum(["webhook", "backfill", "canopy"]),
+  repo: z.string().min(1),           // "owner/name" — part of the dedupe identity
   occurred_at: z.string().optional(),
 });
 
